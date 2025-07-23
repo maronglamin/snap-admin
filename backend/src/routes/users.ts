@@ -81,6 +81,8 @@ router.get('/', authenticate, async (req: any, res) => {
             rejectionReason: true,
             verifiedAt: true,
             createdAt: true,
+            statusChangedBy: true,
+            statusChangedAt: true,
             bankAccounts: {
               select: {
                 id: true,
@@ -114,6 +116,7 @@ router.get('/', authenticate, async (req: any, res) => {
             status: true,
             totalAmount: true,
             currencyCode: true,
+            paymentStatus: true,
             createdAt: true,
           }
         },
@@ -123,6 +126,7 @@ router.get('/', authenticate, async (req: any, res) => {
             status: true,
             totalAmount: true,
             currencyCode: true,
+            paymentStatus: true,
             createdAt: true,
           }
         },
@@ -208,11 +212,24 @@ router.get('/', authenticate, async (req: any, res) => {
       let currencyTotals = {}; // Track totals by currency
 
       if (userType === 'SELLER' && user.sellerOrders.length > 0) {
-        // Get all unique currencies for this seller
-        allCurrencies = [...new Set(user.sellerOrders.map(order => order.currencyCode))];
+        // Get current month date range
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
         
-        // Group orders by currency and sum totals
-        currencyTotals = user.sellerOrders.reduce((acc, order) => {
+        // Filter orders to only include PAID or SETTLED orders for sellers in current month
+        const paidOrders = user.sellerOrders.filter(order => {
+          const orderDate = new Date(order.createdAt);
+          const isPaid = order.paymentStatus === 'PAID' || order.paymentStatus === 'SETTLED';
+          const isCurrentMonth = orderDate >= startOfMonth && orderDate <= endOfMonth;
+          return isPaid && isCurrentMonth;
+        });
+        
+        // Get all unique currencies for this seller (only from paid orders in current month)
+        allCurrencies = [...new Set(paidOrders.map(order => order.currencyCode))];
+        
+        // Group orders by currency and sum totals (only paid orders in current month)
+        currencyTotals = paidOrders.reduce((acc, order) => {
           const currency = order.currencyCode;
           if (!acc[currency]) {
             acc[currency] = 0;
@@ -221,22 +238,35 @@ router.get('/', authenticate, async (req: any, res) => {
           return acc;
         }, {});
         
-        // Get the most recent order to determine primary currency
-        const latestOrder = user.sellerOrders.reduce((latest, order) => 
-          new Date(order.createdAt) > new Date(latest.createdAt) ? order : latest
-        );
-        latestCurrency = latestOrder.currencyCode;
+        // Get the most recent paid order to determine primary currency
+        const latestOrder = paidOrders.length > 0 
+          ? paidOrders.reduce((latest, order) => 
+              new Date(order.createdAt) > new Date(latest.createdAt) ? order : latest
+            )
+          : null;
+        latestCurrency = latestOrder ? latestOrder.currencyCode : null;
         
         // Set total sales to the primary currency total
-        totalSales = currencyTotals[latestCurrency] || 0;
+        totalSales = latestCurrency ? currencyTotals[latestCurrency] || 0 : 0;
       }
 
       if (userType === 'BUYER' && user.orders.length > 0) {
-        // Get all unique currencies for this buyer
-        allCurrencies = [...new Set(user.orders.map(order => order.currencyCode))];
+        // Get current month date range
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
         
-        // Group orders by currency and sum totals
-        currencyTotals = user.orders.reduce((acc, order) => {
+        // Filter orders to only include orders in current month
+        const currentMonthOrders = user.orders.filter(order => {
+          const orderDate = new Date(order.createdAt);
+          return orderDate >= startOfMonth && orderDate <= endOfMonth;
+        });
+        
+        // Get all unique currencies for this buyer (only from current month orders)
+        allCurrencies = [...new Set(currentMonthOrders.map(order => order.currencyCode))];
+        
+        // Group orders by currency and sum totals (only current month orders)
+        currencyTotals = currentMonthOrders.reduce((acc, order) => {
           const currency = order.currencyCode;
           if (!acc[currency]) {
             acc[currency] = 0;
@@ -246,13 +276,15 @@ router.get('/', authenticate, async (req: any, res) => {
         }, {});
         
         // Get the most recent order to determine primary currency
-        const latestOrder = user.orders.reduce((latest, order) => 
-          new Date(order.createdAt) > new Date(latest.createdAt) ? order : latest
-        );
-        latestCurrency = latestOrder.currencyCode;
+        const latestOrder = currentMonthOrders.length > 0 
+          ? currentMonthOrders.reduce((latest, order) => 
+              new Date(order.createdAt) > new Date(latest.createdAt) ? order : latest
+            )
+          : null;
+        latestCurrency = latestOrder ? latestOrder.currencyCode : null;
         
         // Set total spent to the primary currency total
-        totalSpent = currencyTotals[latestCurrency] || 0;
+        totalSpent = latestCurrency ? currencyTotals[latestCurrency] || 0 : 0;
       }
 
       // If no currency found, default to GMD
@@ -302,11 +334,15 @@ router.get('/', authenticate, async (req: any, res) => {
           rejectionReason: user.sellerKyc.rejectionReason,
           verifiedAt: user.sellerKyc.verifiedAt,
           createdAt: user.sellerKyc.createdAt,
+          statusChangedBy: user.sellerKyc.statusChangedBy,
+          statusChangedAt: user.sellerKyc.statusChangedAt,
           bankAccounts: user.sellerKyc.bankAccounts,
           wallets: user.sellerKyc.wallets,
         } : null,
       };
     });
+
+
 
     res.json({
       success: true,
@@ -350,6 +386,7 @@ router.get('/:id', authenticate, async (req: any, res) => {
             id: true,
             title: true,
             price: true,
+            currencyCode: true,
             status: true,
             createdAt: true,
           }
@@ -359,7 +396,9 @@ router.get('/:id', authenticate, async (req: any, res) => {
             id: true,
             orderNumber: true,
             totalAmount: true,
+            currencyCode: true,
             status: true,
+            paymentStatus: true,
             createdAt: true,
           }
         },
@@ -368,7 +407,9 @@ router.get('/:id', authenticate, async (req: any, res) => {
             id: true,
             orderNumber: true,
             totalAmount: true,
+            currencyCode: true,
             status: true,
+            paymentStatus: true,
             createdAt: true,
           }
         },
@@ -460,6 +501,8 @@ router.get('/:id', authenticate, async (req: any, res) => {
         rejectionReason: user.sellerKyc.rejectionReason,
         verifiedAt: user.sellerKyc.verifiedAt,
         createdAt: user.sellerKyc.createdAt,
+        statusChangedBy: user.sellerKyc.statusChangedBy,
+        statusChangedAt: user.sellerKyc.statusChangedAt,
         bankAccounts: user.sellerKyc.bankAccounts,
         wallets: user.sellerKyc.wallets,
       } : null,
@@ -486,7 +529,7 @@ router.put('/:id/kyc', authenticate, async (req: any, res) => {
     const { id } = req.params;
     const { status, rejectionReason } = req.body;
 
-    console.log('KYC Update Request:', { id, status, rejectionReason }); // Debug log
+
 
     // Validate status
     const validStatuses = ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'];
@@ -523,6 +566,8 @@ router.put('/:id/kyc', authenticate, async (req: any, res) => {
     const updateData: any = {
       status,
       updatedAt: new Date(),
+      statusChangedBy: req.user.username, // Track who changed the status
+      statusChangedAt: new Date(), // Track when the status was changed
     };
 
     // Set verifiedAt if approving
@@ -549,14 +594,14 @@ router.put('/:id/kyc', authenticate, async (req: any, res) => {
       updateData.verifiedAt = null;
     }
 
-    console.log('Update Data:', updateData); // Debug log
+
 
     const updatedKyc = await prisma.sellerKyc.update({
       where: { userId: id },
       data: updateData,
     });
 
-    console.log('Updated KYC:', updatedKyc); // Debug log
+
 
     res.json({
       success: true,

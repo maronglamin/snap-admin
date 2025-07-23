@@ -38,6 +38,7 @@ router.get('/', authenticate, async (req: any, res) => {
       lastLogin: admin.lastLogin,
       createdAt: admin.createdAt,
       updatedAt: admin.updatedAt,
+      createdBy: admin.createdBy,
       operatorEntityId: admin.operatorEntityId,
       operatorEntityName: admin.operatorEntity.name,
       roleName: admin.operatorEntity.role.name,
@@ -135,6 +136,7 @@ router.post('/', [
         name,
         isActive: true,
         operatorEntityId,
+        createdBy: req.user.username, // Track who created this admin
       },
       include: {
         operatorEntity: {
@@ -162,6 +164,7 @@ router.post('/', [
         lastLogin: admin.lastLogin,
         createdAt: admin.createdAt,
         updatedAt: admin.updatedAt,
+        createdBy: admin.createdBy,
         operatorEntityId: admin.operatorEntityId,
         operatorEntityName: admin.operatorEntity.name,
         roleName: admin.operatorEntity.role.name,

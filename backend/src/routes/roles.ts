@@ -49,6 +49,7 @@ router.get('/', authenticate, async (req: any, res) => {
         isActive: role.isActive,
         createdAt: role.createdAt,
         updatedAt: role.updatedAt,
+        createdBy: role.createdBy,
         permissions,
         assignedUsers: role.operatorEntities.reduce((sum, entity) => sum + entity.admins.length, 0)
       };
@@ -105,6 +106,7 @@ router.post('/', [
         name,
         description,
         isActive: true,
+        createdBy: req.user.username, // Track who created this role
       }
     });
 
@@ -152,6 +154,7 @@ router.post('/', [
         permissions: permissionsObj,
         createdAt: createdRole!.createdAt,
         updatedAt: createdRole!.updatedAt,
+        createdBy: createdRole!.createdBy,
       },
       message: 'Role created successfully',
     });
@@ -269,6 +272,7 @@ router.put('/:id', [
         permissions: permissionsObj,
         createdAt: finalRole!.createdAt,
         updatedAt: finalRole!.updatedAt,
+        createdBy: finalRole!.createdBy,
       },
       message: 'Role updated successfully',
     });
@@ -353,6 +357,70 @@ router.delete('/:id', authenticate, async (req: any, res) => {
     res.status(500).json({
       success: false,
       error: 'Server error while deleting role',
+    });
+  }
+});
+
+// @route   GET /api/roles/available-permissions
+// @desc    Get available entity types and permissions
+// @access  Private
+router.get('/available-permissions', authenticate, async (req: any, res) => {
+  try {
+    const entityTypes = [
+      // Main menus
+      { value: 'DASHBOARD', label: 'Dashboard', type: 'main' },
+      { value: 'USERS', label: 'Users', type: 'main' },
+      { value: 'PRODUCTS', label: 'Products', type: 'main' },
+      { value: 'ORDERS', label: 'Orders', type: 'main' },
+      { value: 'SETTLEMENTS', label: 'Settlements', type: 'main' },
+      { value: 'JOURNALS', label: 'Journals', type: 'main' },
+      { value: 'SYSTEM_CONFIG', label: 'System Configuration', type: 'main' },
+      
+      // Users submenus
+      { value: 'USERS_SNAP_USERS', label: 'SNAP Users', type: 'submenu', parent: 'USERS' },
+      { value: 'USERS_KYC_APPROVAL', label: 'KYC Approval', type: 'submenu', parent: 'USERS' },
+      
+      // Products submenus
+      { value: 'PRODUCTS_CATEGORIES', label: 'Categories', type: 'submenu', parent: 'PRODUCTS' },
+      
+      // Settlements submenus
+      { value: 'SETTLEMENTS_REQUESTS', label: 'Settlement Request', type: 'submenu', parent: 'SETTLEMENTS' },
+      { value: 'SETTLEMENTS_SHEET', label: 'Settlement Sheet', type: 'submenu', parent: 'SETTLEMENTS' },
+      { value: 'SETTLEMENTS_CUMULATIVE_ENTRIES', label: 'Cumulative Entries', type: 'submenu', parent: 'SETTLEMENTS' },
+      
+      // Journals submenus
+      { value: 'JOURNALS_STRIPE_PAYMENT_REPORT', label: 'Stripe Payment Report', type: 'submenu', parent: 'JOURNALS' },
+      { value: 'JOURNALS_SNAP_FEE_REPORT', label: 'Snap Fee Report', type: 'submenu', parent: 'JOURNALS' },
+      { value: 'JOURNALS_AUDIT_REPORT', label: 'Transaction Logs', type: 'submenu', parent: 'JOURNALS' },
+      
+      // System Config submenus
+      { value: 'SYSTEM_CONFIG_ROLES', label: 'Roles', type: 'submenu', parent: 'SYSTEM_CONFIG' },
+      { value: 'SYSTEM_CONFIG_OPERATOR_ENTITY', label: 'User Container', type: 'submenu', parent: 'SYSTEM_CONFIG' },
+      { value: 'SYSTEM_CONFIG_SYSTEM_OPERATOR', label: 'Admin Container', type: 'submenu', parent: 'SYSTEM_CONFIG' },
+      { value: 'SYSTEM_CONFIG_SETTLEMENT_GROUP', label: 'Settlement Group', type: 'submenu', parent: 'SYSTEM_CONFIG' },
+      { value: 'SYSTEM_CONFIG_PAYMENT_GATEWAYS', label: 'Payment Gateways', type: 'submenu', parent: 'SYSTEM_CONFIG' },
+    ];
+
+    const permissions = [
+      { value: 'VIEW', label: 'View' },
+      { value: 'ADD', label: 'Add' },
+      { value: 'EDIT', label: 'Edit' },
+      { value: 'DELETE', label: 'Delete' },
+      { value: 'EXPORT', label: 'Export' },
+    ];
+
+    res.json({
+      success: true,
+      data: {
+        entityTypes,
+        permissions,
+      },
+    });
+  } catch (error) {
+    console.error('Get available permissions error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error',
     });
   }
 });

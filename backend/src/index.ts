@@ -17,6 +17,8 @@ import operatorEntityRoutes from './routes/operator-entities';
 import adminUserRoutes from './routes/admin-users';
 import ucpRoutes from './routes/ucp';
 import journalsRoutes from './routes/journals';
+import categoryRoutes from './routes/categories';
+import paymentGatewayRoutes from './routes/payment-gateways';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -77,6 +79,8 @@ app.use('/api/operator-entities', operatorEntityRoutes);
 app.use('/api/admin-users', adminUserRoutes);
 app.use('/api/ucp', ucpRoutes);
 app.use('/api/journals', journalsRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/payment-gateways', paymentGatewayRoutes);
 
 // 404 handler
 app.use(notFound);

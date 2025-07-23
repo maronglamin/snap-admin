@@ -43,6 +43,7 @@ router.get('/', authenticate, async (req: any, res) => {
       isActive: entity.isActive,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+      createdBy: entity.createdBy,
       assignedUsers: entity.admins.length,
       users: entity.admins,
     }));
@@ -99,6 +100,7 @@ router.post('/', [
         description,
         roleId,
         isActive: true,
+        createdBy: req.user.username, // Track who created this entity
       },
       include: {
         role: {
@@ -122,6 +124,7 @@ router.post('/', [
         isActive: entity.isActive,
         createdAt: entity.createdAt,
         updatedAt: entity.updatedAt,
+        createdBy: entity.createdBy,
         assignedUsers: 0,
         users: [],
       },
@@ -221,6 +224,7 @@ router.put('/:id', [
         isActive: updatedEntity.isActive,
         createdAt: updatedEntity.createdAt,
         updatedAt: updatedEntity.updatedAt,
+        createdBy: updatedEntity.createdBy,
         assignedUsers: updatedEntity.admins.length,
         users: updatedEntity.admins,
       },

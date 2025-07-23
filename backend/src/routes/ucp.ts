@@ -123,6 +123,7 @@ router.post('/', authenticate, async (req: any, res) => {
         serviceType,
         isActive: isActive !== undefined ? isActive : true,
         metadata: metadata || null,
+        createdBy: req.user.username, // Track who created this settlement group
       },
     });
 

@@ -203,6 +203,120 @@ router.get('/', authenticate, async (req: any, res) => {
   }
 });
 
+// @route   GET /api/orders/export
+// @desc    Export all orders with current filters (no pagination)
+// @access  Private
+router.get('/export', authenticate, async (req: any, res) => {
+  try {
+    const { 
+      search = '', 
+      status = 'all',
+      paymentStatus = 'all',
+      dateFrom = '',
+      dateTo = '',
+    } = req.query;
+
+    // Build where clause for orders
+    const where: any = {};
+
+    // Add search filter
+    if (search) {
+      where.OR = [
+        { orderNumber: { contains: search, mode: 'insensitive' } },
+        { customerName: { contains: search, mode: 'insensitive' } },
+        { customerEmail: { contains: search, mode: 'insensitive' } },
+        { customerPhone: { contains: search, mode: 'insensitive' } },
+        { totalAmount: { equals: parseFloat(search) || undefined } },
+        { user: { 
+          OR: [
+            { firstName: { contains: search, mode: 'insensitive' } },
+            { lastName: { contains: search, mode: 'insensitive' } },
+            { phoneNumber: { contains: search, mode: 'insensitive' } }
+          ]
+        }},
+        { seller: { 
+          OR: [
+            { firstName: { contains: search, mode: 'insensitive' } },
+            { lastName: { contains: search, mode: 'insensitive' } },
+            { phoneNumber: { contains: search, mode: 'insensitive' } }
+          ]
+        }},
+      ];
+    }
+
+    // Add status filter
+    if (status && status !== 'all') {
+      where.status = status;
+    }
+
+    // Add payment status filter
+    if (paymentStatus && paymentStatus !== 'all') {
+      where.paymentStatus = paymentStatus;
+    }
+
+    // Add date range filter
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) {
+        const startDate = new Date(dateFrom as string);
+        where.createdAt.gte = startDate;
+      }
+      if (dateTo) {
+        const endDate = new Date(dateTo as string);
+        where.createdAt.lte = endDate;
+      }
+    }
+
+    // Get all data with related information (no pagination for export)
+    const orders = await prisma.order.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            phoneNumber: true,
+          }
+        },
+        seller: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            phoneNumber: true,
+          }
+        },
+        orderItems: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                title: true,
+                price: true,
+                currencyCode: true,
+              }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json({
+      success: true,
+      data: orders,
+      total: orders.length,
+    });
+  } catch (error) {
+    console.error('Export orders error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error',
+    });
+  }
+});
+
 // @route   GET /api/orders/:id
 // @desc    Get single order with full details
 // @access  Private

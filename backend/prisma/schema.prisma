@@ -22,15 +22,31 @@ enum Permission {
   EDIT
   VIEW
   DELETE
+  EXPORT
 }
 
 enum EntityType {
+  DASHBOARD
   USERS
+  USERS_SNAP_USERS
+  USERS_KYC_APPROVAL
   PRODUCTS
+  PRODUCTS_CATEGORIES
   ORDERS
   SETTLEMENTS
-  ANALYTICS
+  SETTLEMENTS_REQUESTS
+  SETTLEMENTS_SHEET
+  SETTLEMENTS_CUMULATIVE_ENTRIES
+  JOURNALS
+  JOURNALS_STRIPE_PAYMENT_REPORT
+  JOURNALS_SNAP_FEE_REPORT
+  JOURNALS_AUDIT_REPORT
   SYSTEM_CONFIG
+  SYSTEM_CONFIG_ROLES
+  SYSTEM_CONFIG_OPERATOR_ENTITY
+  SYSTEM_CONFIG_SYSTEM_OPERATOR
+  SYSTEM_CONFIG_SETTLEMENT_GROUP
+  SYSTEM_CONFIG_PAYMENT_GATEWAYS
 }
 
 model Admin {
@@ -43,6 +59,7 @@ model Admin {
   lastLogin DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  createdBy String?  // Username of the admin who created this admin user
 
   // Relationship to OperatorEntity (required)
   operatorEntityId String
@@ -58,6 +75,7 @@ model Role {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  createdBy   String?  // Username of the admin who created this role
 
   // Relationship to permissions
   permissions RolePermission[]
@@ -92,6 +110,7 @@ model OperatorEntity {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  createdBy   String?  // Username of the admin who created this entity
 
   // Relationship to role
   role Role @relation(fields: [roleId], references: [id])
@@ -165,6 +184,7 @@ model PaymentGatewayServiceProvider {
   metadata     Json?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  createdBy    String?  // Username of the admin who created this payment gateway
 
   @@unique([name, countryCode])
   @@index([countryCode])
@@ -314,6 +334,7 @@ model Category {
   order        Int                   @default(0)
   isActive     Boolean               @default(true)
   metadata     Json?
+  createdBy    String?               // Username of the admin who created this category
   parent       Category?             @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children     Category[]            @relation("CategoryHierarchy")
   translations CategoryTranslation[]
@@ -429,6 +450,8 @@ model SellerKyc {
   updatedAt          DateTime      @updatedAt
   country            String[]
   documentExpiryDate DateTime?
+  statusChangedBy    String?       // Username of the admin who changed the KYC status
+  statusChangedAt    DateTime?     // When the status was last changed
   bankAccounts       BankAccount[]
   user               User          @relation(fields: [userId], references: [id])
   wallets            Wallet[]
@@ -703,6 +726,7 @@ model UCP {
   metadata    Json?    // Additional configuration data
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  createdBy   String?  // Username of the admin who created this configuration
 
   @@index([name])
   @@index([serviceType])

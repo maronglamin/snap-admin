@@ -27,7 +27,7 @@ router.post('/login', [
 
     const { username, password } = req.body;
 
-    // Find admin by username or email with entity and role
+    // Find admin by username or email with entity and role permissions
     const admin = await prisma.admin.findFirst({
       where: {
         OR: [
@@ -38,7 +38,11 @@ router.post('/login', [
       include: {
         operatorEntity: {
           include: {
-            role: true
+            role: {
+              include: {
+                permissions: true
+              }
+            }
           }
         }
       }
@@ -91,6 +95,15 @@ router.post('/login', [
       { expiresIn: process.env.JWT_EXPIRES_IN || '24h' } as any
     );
 
+    // Transform permissions to frontend format
+    const permissions = {};
+    admin.operatorEntity.role.permissions.forEach(perm => {
+      if (!permissions[perm.entityType]) {
+        permissions[perm.entityType] = {};
+      }
+      permissions[perm.entityType][perm.permission] = perm.isGranted;
+    });
+
     res.json({
       success: true,
       data: {
@@ -103,6 +116,7 @@ router.post('/login', [
           role: admin.operatorEntity.role.name,
           entityId: admin.operatorEntityId,
           entityName: admin.operatorEntity.name,
+          permissions,
         },
       },
       message: 'Login successful',
@@ -126,7 +140,11 @@ router.get('/me', authenticate, async (req: any, res) => {
       include: {
         operatorEntity: {
           include: {
-            role: true
+            role: {
+              include: {
+                permissions: true
+              }
+            }
           }
         }
       }
@@ -138,6 +156,15 @@ router.get('/me', authenticate, async (req: any, res) => {
         error: 'Admin not found',
       });
     }
+
+    // Transform permissions to frontend format
+    const permissions = {};
+    admin.operatorEntity.role.permissions.forEach(perm => {
+      if (!permissions[perm.entityType]) {
+        permissions[perm.entityType] = {};
+      }
+      permissions[perm.entityType][perm.permission] = perm.isGranted;
+    });
 
     res.json({
       success: true,
@@ -152,6 +179,7 @@ router.get('/me', authenticate, async (req: any, res) => {
         createdAt: admin.createdAt,
         entityId: admin.operatorEntityId,
         entityName: admin.operatorEntity.name,
+        permissions,
       },
     });
   } catch (error) {

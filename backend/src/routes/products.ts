@@ -225,6 +225,143 @@ router.get('/', authenticate, async (req: any, res) => {
   }
 });
 
+// @route   GET /api/products/export
+// @desc    Export all products with current filters (no pagination)
+// @access  Private
+router.get('/export', authenticate, async (req: any, res) => {
+  try {
+    const { 
+      search = '', 
+      status = 'all',
+      condition = 'all',
+      categoryId = 'all',
+      isFeatured = 'all',
+      dateFrom = '',
+      dateTo = '',
+    } = req.query;
+
+    // Build where clause for products
+    const where: any = {};
+
+    // Add search filter
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { price: { equals: parseFloat(search) || undefined } },
+        { seller: { 
+          OR: [
+            { firstName: { contains: search, mode: 'insensitive' } },
+            { lastName: { contains: search, mode: 'insensitive' } },
+            { phoneNumber: { contains: search, mode: 'insensitive' } }
+          ]
+        }},
+      ];
+    }
+
+    // Add status filter
+    if (status && status !== 'all') {
+      where.status = status;
+    }
+
+    // Add condition filter
+    if (condition && condition !== 'all') {
+      where.condition = condition;
+    }
+
+    // Add category filter
+    if (categoryId && categoryId !== 'all') {
+      where.categoryId = categoryId;
+    }
+
+    // Add featured filter
+    if (isFeatured && isFeatured !== 'all') {
+      where.isFeatured = isFeatured === 'true';
+    }
+
+    // Add date range filter
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) {
+        const startDate = new Date(dateFrom as string);
+        where.createdAt.gte = startDate;
+      }
+      if (dateTo) {
+        const endDate = new Date(dateTo as string);
+        where.createdAt.lte = endDate;
+      }
+    }
+
+    // Get all data with related information (no pagination for export)
+    const products = await prisma.product.findMany({
+      where,
+      include: {
+        seller: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            phoneNumber: true,
+          }
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          }
+        },
+        images: {
+          select: {
+            id: true,
+            imageUrl: true,
+            isPrimary: true,
+          },
+          take: 1,
+        },
+        orderItems: {
+          where: {
+            order: {
+              paymentStatus: {
+                in: ['PAID', 'SETTLED']
+              },
+              createdAt: {
+                gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+                lte: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59, 999)
+              }
+            }
+          },
+          include: {
+            order: {
+              select: {
+                id: true,
+                status: true,
+                paymentStatus: true,
+                totalAmount: true,
+                currencyCode: true,
+              }
+            }
+          }
+        },
+        productViews: true
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json({
+      success: true,
+      data: products,
+      total: products.length,
+    });
+  } catch (error) {
+    console.error('Export products error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error',
+    });
+  }
+});
+
 // @route   GET /api/products/:id
 // @desc    Get single product with full details
 // @access  Private
@@ -305,6 +442,17 @@ router.get('/:id', authenticate, async (req: any, res) => {
           }
         },
         orderItems: {
+          where: {
+            order: {
+              paymentStatus: {
+                in: ['PAID', 'SETTLED']
+              },
+              createdAt: {
+                gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+                lte: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59, 999)
+              }
+            }
+          },
           select: {
             id: true,
             quantity: true,
@@ -317,6 +465,7 @@ router.get('/:id', authenticate, async (req: any, res) => {
                 id: true,
                 orderNumber: true,
                 status: true,
+                paymentStatus: true,
                 totalAmount: true,
                 currencyCode: true,
                 customerName: true,
