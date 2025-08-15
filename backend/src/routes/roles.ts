@@ -375,6 +375,7 @@ router.get('/available-permissions', authenticate, async (req: any, res) => {
       { value: 'SETTLEMENTS', label: 'Settlements', type: 'main' },
       { value: 'JOURNALS', label: 'Journals', type: 'main' },
       { value: 'SYSTEM_CONFIG', label: 'System Configuration', type: 'main' },
+      { value: 'SNAP_RIDE', label: 'SNAP Ride', type: 'main' },
       
       // Users submenus
       { value: 'USERS_SNAP_USERS', label: 'SNAP Users', type: 'submenu', parent: 'USERS' },
@@ -399,6 +400,14 @@ router.get('/available-permissions', authenticate, async (req: any, res) => {
       { value: 'SYSTEM_CONFIG_SYSTEM_OPERATOR', label: 'Admin Container', type: 'submenu', parent: 'SYSTEM_CONFIG' },
       { value: 'SYSTEM_CONFIG_SETTLEMENT_GROUP', label: 'Settlement Group', type: 'submenu', parent: 'SYSTEM_CONFIG' },
       { value: 'SYSTEM_CONFIG_PAYMENT_GATEWAYS', label: 'Payment Gateways', type: 'submenu', parent: 'SYSTEM_CONFIG' },
+      
+      // SNAP Ride submenus
+      { value: 'SNAP_RIDE_RIDER_APPLICATIONS', label: 'Ride Applications', type: 'submenu', parent: 'SNAP_RIDE' },
+      { value: 'SNAP_RIDE_DRIVER_MANAGEMENT', label: 'Driver Management', type: 'submenu', parent: 'SNAP_RIDE' },
+      { value: 'SNAP_RIDE_RIDE_MANAGEMENT', label: 'Ride Management', type: 'submenu', parent: 'SNAP_RIDE' },
+      { value: 'SNAP_RIDE_ANALYTICS', label: 'Analytics', type: 'submenu', parent: 'SNAP_RIDE' },
+      { value: 'SNAP_RIDE_RIDE_SERVICE', label: 'Ride Service', type: 'submenu', parent: 'SNAP_RIDE' },
+      { value: 'SNAP_RIDE_RIDE_SERVICE_TIERS', label: 'Ride Service Tiers', type: 'submenu', parent: 'SNAP_RIDE' },
     ];
 
     const permissions = [

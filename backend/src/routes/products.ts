@@ -471,14 +471,15 @@ router.get('/:id', authenticate, async (req: any, res) => {
                 customerName: true,
                 customerPhone: true,
                 createdAt: true,
-                user: {
-                  select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true,
-                    phoneNumber: true,
-                  }
-                }
+                // Temporarily commented out due to schema issues
+                // user: {
+                //   select: {
+                //     id: true,
+                //     firstName: true,
+                //     lastName: true,
+                //     phoneNumber: true,
+                //   }
+                // }
               }
             }
           },

@@ -10,7 +10,7 @@ const prisma = new PrismaClient();
 // @access  Private
 router.get('/cumulative-entries', authenticate, async (req: any, res) => {
   try {
-    const { dateFrom, dateTo, currency } = req.query;
+    const { dateFrom, dateTo, currency, page = 1, limit = 1000 } = req.query;
 
     // Build date filter
     const dateFilter: any = {};
@@ -24,7 +24,12 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
     // Build currency filter
     const currencyFilter = currency ? { currencyCode: currency } : {};
 
-    // Get all settlements
+    // Pagination parameters
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Get settlements with pagination
     const settlements = await prisma.settlement.findMany({
       where: {
         createdAt: Object.keys(dateFilter).length > 0 ? dateFilter : undefined,
@@ -39,11 +44,16 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
             phoneNumber: true,
           }
         }
+      },
+      skip,
+      take: limitNum,
+      orderBy: {
+        createdAt: 'desc'
       }
     });
 
-    // Get all orders with financial data
-    const orders = await prisma.order.findMany({
+    // Get orders with pagination
+    const orders = await (prisma as any).orders.findMany({
       where: {
         createdAt: Object.keys(dateFilter).length > 0 ? dateFilter : undefined,
         ...currencyFilter,
@@ -65,10 +75,15 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
             phoneNumber: true,
           }
         }
+      },
+      skip,
+      take: limitNum,
+      orderBy: {
+        createdAt: 'desc'
       }
     });
 
-    // Get all external transactions
+    // Get external transactions with pagination
     const externalTransactions = await prisma.externalTransaction.findMany({
       where: {
         createdAt: Object.keys(dateFilter).length > 0 ? dateFilter : undefined,
@@ -97,6 +112,11 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
             phoneNumber: true,
           }
         }
+      },
+      skip,
+      take: limitNum,
+      orderBy: {
+        createdAt: 'desc'
       }
     });
     
@@ -236,9 +256,45 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
     // Convert to array and sort by currency
     const result = Object.values(currencyGroups).sort((a: any, b: any) => a.currency.localeCompare(b.currency));
 
+    // Get total counts for pagination info
+    const totalSettlements = await prisma.settlement.count({
+      where: {
+        createdAt: Object.keys(dateFilter).length > 0 ? dateFilter : undefined,
+        currency: currency || undefined,
+      }
+    });
+
+    const totalOrders = await (prisma as any).orders.count({
+      where: {
+        createdAt: Object.keys(dateFilter).length > 0 ? dateFilter : undefined,
+        ...currencyFilter,
+      }
+    });
+
+    const totalTransactions = await prisma.externalTransaction.count({
+      where: {
+        createdAt: Object.keys(dateFilter).length > 0 ? dateFilter : undefined,
+        ...currencyFilter,
+      }
+    });
+
+    const totalRecords = totalSettlements + totalOrders + totalTransactions;
+    const totalPages = Math.ceil(totalRecords / limitNum);
+
     res.json({
       success: true,
       data: result,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        totalRecords,
+        totalPages,
+        hasNextPage: pageNum < totalPages,
+        hasPrevPage: pageNum > 1,
+        totalSettlements,
+        totalOrders,
+        totalTransactions
+      },
       summary: {
         totalCurrencies: result.length,
         totalDebits: result.reduce((sum: number, group: any) => sum + group.totalDebits, 0),
@@ -247,9 +303,11 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
       }
     });
   } catch (error) {
+    console.error('Error in cumulative-entries:', error);
     res.status(500).json({
       success: false,
       error: 'Server error',
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });

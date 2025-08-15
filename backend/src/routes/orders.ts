@@ -10,7 +10,7 @@ const prisma = new PrismaClient();
 // @access  Private
 router.get('/count', authenticate, async (req: any, res) => {
   try {
-    const total = await prisma.order.count();
+    const total = await (prisma as any).orders.count();
     console.log('Total Orders in Database:', total);
     
     res.json({
@@ -112,7 +112,7 @@ router.get('/', authenticate, async (req: any, res) => {
     console.log('Final Where Clause:', JSON.stringify(where, null, 2));
 
     // Get total count
-    const total = await prisma.order.count({ where });
+    const total = await (prisma as any).orders.count({ where });
     const totalPages = Math.ceil(total / limitNum);
 
     console.log('Total Orders Found:', total);
@@ -122,11 +122,11 @@ router.get('/', authenticate, async (req: any, res) => {
     console.log('Skip:', skip);
 
     // Get total count without any filters for debugging
-    const totalWithoutFilters = await prisma.order.count();
+    const totalWithoutFilters = await (prisma as any).orders.count();
     console.log('Total Orders in Database (no filters):', totalWithoutFilters);
 
     // Get paginated data with related information
-    const orders = await prisma.order.findMany({
+    const orders = await (prisma as any).orders.findMany({
       where,
       include: {
         user: {
@@ -145,7 +145,7 @@ router.get('/', authenticate, async (req: any, res) => {
             phoneNumber: true,
           }
         },
-        orderItems: {
+        items: {
           select: {
             id: true,
             productId: true,
@@ -268,7 +268,7 @@ router.get('/export', authenticate, async (req: any, res) => {
     }
 
     // Get all data with related information (no pagination for export)
-    const orders = await prisma.order.findMany({
+    const orders = await (prisma as any).orders.findMany({
       where,
       include: {
         user: {
@@ -287,7 +287,7 @@ router.get('/export', authenticate, async (req: any, res) => {
             phoneNumber: true,
           }
         },
-        orderItems: {
+        items: {
           include: {
             product: {
               select: {
@@ -324,7 +324,7 @@ router.get('/:id', authenticate, async (req: any, res) => {
   try {
     const { id } = req.params;
 
-    const order = await prisma.order.findUnique({
+    const order = await (prisma as any).orders.findUnique({
       where: { id },
       include: {
         user: {
@@ -343,7 +343,7 @@ router.get('/:id', authenticate, async (req: any, res) => {
             phoneNumber: true,
           }
         },
-        orderItems: {
+        items: {
           select: {
             id: true,
             productId: true,
@@ -431,7 +431,7 @@ router.put('/:id/status', authenticate, async (req: any, res) => {
       });
     }
 
-    const order = await prisma.order.update({
+    const order = await (prisma as any).orders.update({
       where: { id },
       data: { 
         status,
@@ -457,7 +457,7 @@ router.put('/:id/status', authenticate, async (req: any, res) => {
             phoneNumber: true,
           }
         },
-        orderItems: {
+        items: {
           include: {
             product: {
               select: {

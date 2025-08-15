@@ -1,22 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { AuthenticatedRequest } from '../types';
 
 const prisma = new PrismaClient();
-
-export interface AuthenticatedRequest extends Request {
-  admin?: {
-    id: string;
-    email: string;
-    name: string;
-    username: string;
-    operatorEntityId: string;
-  };
-}
 
 export const requirePermission = (entityType: string, permission: string) => {
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      if (!req.admin) {
+      if (!req.user) {
         return res.status(401).json({
           success: false,
           error: 'Authentication required',
@@ -25,7 +16,7 @@ export const requirePermission = (entityType: string, permission: string) => {
 
       // Get the admin's operator entity and role
       const adminWithRole = await prisma.admin.findUnique({
-        where: { id: req.admin.id },
+        where: { id: req.user.id },
         include: {
           operatorEntity: {
             include: {
@@ -78,7 +69,7 @@ export const requirePermission = (entityType: string, permission: string) => {
 export const requireAnyPermission = (permissions: Array<{ entityType: string; permission: string }>) => {
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      if (!req.admin) {
+      if (!req.user) {
         return res.status(401).json({
           success: false,
           error: 'Authentication required',
@@ -87,7 +78,7 @@ export const requireAnyPermission = (permissions: Array<{ entityType: string; pe
 
       // Get the admin's operator entity and role
       const adminWithRole = await prisma.admin.findUnique({
-        where: { id: req.admin.id },
+        where: { id: req.user.id },
         include: {
           operatorEntity: {
             include: {
@@ -143,7 +134,7 @@ export const requireAnyPermission = (permissions: Array<{ entityType: string; pe
 export const requireAllPermissions = (permissions: Array<{ entityType: string; permission: string }>) => {
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      if (!req.admin) {
+      if (!req.user) {
         return res.status(401).json({
           success: false,
           error: 'Authentication required',
@@ -152,7 +143,7 @@ export const requireAllPermissions = (permissions: Array<{ entityType: string; p
 
       // Get the admin's operator entity and role
       const adminWithRole = await prisma.admin.findUnique({
-        where: { id: req.admin.id },
+        where: { id: req.user.id },
         include: {
           operatorEntity: {
             include: {
