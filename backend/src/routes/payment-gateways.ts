@@ -88,36 +88,7 @@ router.get('/', authenticate, async (req: any, res) => {
   }
 });
 
-// @route   GET /api/payment-gateways/:id
-// @desc    Get single payment gateway service provider
-// @access  Private
-router.get('/:id', authenticate, async (req: any, res) => {
-  try {
-    const { id } = req.params;
 
-    const paymentGateway = await prisma.paymentGatewayServiceProvider.findUnique({
-      where: { id },
-    });
-
-    if (!paymentGateway) {
-      return res.status(404).json({
-        success: false,
-        error: 'Payment gateway not found',
-      });
-    }
-
-    res.json({
-      success: true,
-      data: paymentGateway,
-    });
-  } catch (error) {
-    console.error('Get payment gateway by ID error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error',
-    });
-  }
-});
 
 // @route   POST /api/payment-gateways
 // @desc    Create new payment gateway service provider
@@ -369,6 +340,37 @@ router.get('/currencies', authenticate, async (req: any, res) => {
     });
   } catch (error) {
     console.error('Get payment gateway currencies error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error',
+    });
+  }
+});
+
+// @route   GET /api/payment-gateways/:id
+// @desc    Get single payment gateway service provider
+// @access  Private
+router.get('/:id', authenticate, async (req: any, res) => {
+  try {
+    const { id } = req.params;
+
+    const paymentGateway = await prisma.paymentGatewayServiceProvider.findUnique({
+      where: { id },
+    });
+
+    if (!paymentGateway) {
+      return res.status(404).json({
+        success: false,
+        error: 'Payment gateway not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      data: paymentGateway,
+    });
+  } catch (error) {
+    console.error('Get payment gateway by ID error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error',

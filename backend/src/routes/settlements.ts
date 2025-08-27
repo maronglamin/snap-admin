@@ -29,11 +29,12 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
 
-    // Get settlements with pagination
+    // Get settlements with pagination - only COMPLETED status
     const settlements = await prisma.settlement.findMany({
       where: {
         createdAt: Object.keys(dateFilter).length > 0 ? dateFilter : undefined,
         currency: currency || undefined,
+        status: 'COMPLETED',
       },
       include: {
         user: {
@@ -59,7 +60,7 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
         ...currencyFilter,
       },
       include: {
-        seller: {
+        User_orders_sellerIdToUser: {
           select: {
             id: true,
             firstName: true,
@@ -67,7 +68,7 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
             phoneNumber: true,
           }
         },
-        user: {
+        User_orders_userIdToUser: {
           select: {
             id: true,
             firstName: true,
@@ -83,11 +84,12 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
       }
     });
 
-    // Get external transactions with pagination
+    // Get external transactions with pagination - only SUCCESS status
     const externalTransactions = await prisma.externalTransaction.findMany({
       where: {
         createdAt: Object.keys(dateFilter).length > 0 ? dateFilter : undefined,
         ...currencyFilter,
+        status: 'SUCCESS',
       },
       include: {
         order: {
@@ -137,11 +139,6 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
           currency,
           debits: {
             settlementRequests: 0,
-            discounts: 0,
-            tax: 0,
-            shippingAmount: 0,
-            totalAmount: 0,
-            fee: 0,
             original: 0,
           },
           credits: {
@@ -168,11 +165,6 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
           currency,
           debits: {
             settlementRequests: 0,
-            discounts: 0,
-            tax: 0,
-            shippingAmount: 0,
-            totalAmount: 0,
-            fee: 0,
             original: 0,
           },
           credits: {
@@ -187,10 +179,6 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
         };
       }
       
-      currencyGroups[currency].debits.discounts += Number(order.discountAmount);
-      currencyGroups[currency].debits.tax += Number(order.taxAmount);
-      currencyGroups[currency].debits.shippingAmount += Number(order.shippingAmount);
-      currencyGroups[currency].debits.totalAmount += Number(order.totalAmount);
       currencyGroups[currency].details.orders.push(order);
     });
 
@@ -203,11 +191,6 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
           currency,
           debits: {
             settlementRequests: 0,
-            discounts: 0,
-            tax: 0,
-            shippingAmount: 0,
-            totalAmount: 0,
-            fee: 0,
             original: 0,
           },
           credits: {
@@ -261,6 +244,7 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
       where: {
         createdAt: Object.keys(dateFilter).length > 0 ? dateFilter : undefined,
         currency: currency || undefined,
+        status: 'COMPLETED',
       }
     });
 
@@ -275,6 +259,7 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
       where: {
         createdAt: Object.keys(dateFilter).length > 0 ? dateFilter : undefined,
         ...currencyFilter,
+        status: 'SUCCESS',
       }
     });
 
@@ -297,9 +282,9 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
       },
       summary: {
         totalCurrencies: result.length,
-        totalDebits: result.reduce((sum: number, group: any) => sum + group.totalDebits, 0),
-        totalCredits: result.reduce((sum: number, group: any) => sum + group.totalCredits, 0),
-        netPosition: result.reduce((sum: number, group: any) => sum + group.netPosition, 0),
+        totalDebits: result.find((group: any) => group.currency === 'GMD')?.totalDebits || 0,
+        totalCredits: result.find((group: any) => group.currency === 'GMD')?.totalCredits || 0,
+        netPosition: result.find((group: any) => group.currency === 'GMD')?.netPosition || 0,
       }
     });
   } catch (error) {
@@ -542,6 +527,68 @@ router.put('/:id/status', authenticate, async (req: any, res) => {
       message: 'Settlement status updated successfully',
     });
   } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Server error',
+    });
+  }
+});
+
+// @route   PUT /api/settlements/bulk-update-status
+// @desc    Bulk update settlement statuses
+// @access  Private
+router.put('/bulk-update-status', authenticate, async (req: any, res) => {
+  try {
+    const { ids, status } = req.body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Settlement IDs array is required',
+      });
+    }
+
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        error: 'Status is required',
+      });
+    }
+
+    // Update all settlements in a transaction
+    const updatedSettlements = await prisma.$transaction(async (tx) => {
+      const updates = await Promise.all(
+        ids.map((id: string) =>
+          tx.settlement.update({
+            where: { id },
+            data: { 
+              status,
+              processedAt: status === 'COMPLETED' ? new Date() : null,
+              updatedAt: new Date(),
+            },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  phoneNumber: true,
+                }
+              }
+            },
+          })
+        )
+      );
+      return updates;
+    });
+
+    res.json({
+      success: true,
+      data: updatedSettlements,
+      message: `Successfully updated ${updatedSettlements.length} settlement(s) to ${status}`,
+    });
+  } catch (error) {
+    console.error('Bulk update settlement status error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error',

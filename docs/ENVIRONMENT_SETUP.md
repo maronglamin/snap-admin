@@ -21,7 +21,7 @@ IMAGE_SERVER_URL="https://your-image-server.com"
 # IMAGE_SERVER_URL="http://localhost:3002"
 
 # Other Configuration
-CORS_ORIGIN="http://localhost:3000"
+CORS_ORIGIN="http://localhost:3001"
 ```
 
 ## Image Server Configuration

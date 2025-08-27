@@ -595,7 +595,7 @@ NEXT_PUBLIC_WS_URL=ws://localhost:3001
 
 # Authentication
 NEXTAUTH_SECRET=your-secret-key
-NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_URL=http://localhost:3001
 
 # Database (if needed)
 DATABASE_URL=postgresql://...

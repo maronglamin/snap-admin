@@ -29,7 +29,9 @@ const entityTypes = [
   'SNAP_RIDE_DRIVER_MANAGEMENT',
   'SNAP_RIDE_RIDE_MANAGEMENT',
   'SNAP_RIDE_ANALYTICS',
-  'SNAP_RIDE_RIDE_SERVICE'
+  'SNAP_RIDE_RIDE_SERVICE',
+  'ANALYTICS',
+  'ANALYTICS_REVENUE'
 ];
 
 const permissions = ['VIEW', 'ADD', 'EDIT', 'DELETE', 'EXPORT'];
@@ -100,6 +102,10 @@ async function seedRoles() {
       
       // SNAP Ride submenus
       'SNAP_RIDE_RIDER_APPLICATIONS', 'SNAP_RIDE_DRIVER_MANAGEMENT', 'SNAP_RIDE_RIDE_MANAGEMENT', 'SNAP_RIDE_ANALYTICS',
+      
+      // Analytics
+      'ANALYTICS',
+      'ANALYTICS_REVENUE',
     ];
     
     for (const entityType of managerEntityTypes) {

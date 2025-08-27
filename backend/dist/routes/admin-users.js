@@ -37,6 +37,7 @@ router.get('/', auth_1.authenticate, async (req, res) => {
             lastLogin: admin.lastLogin,
             createdAt: admin.createdAt,
             updatedAt: admin.updatedAt,
+            createdBy: admin.createdBy,
             operatorEntityId: admin.operatorEntityId,
             operatorEntityName: admin.operatorEntity.name,
             roleName: admin.operatorEntity.role.name,
@@ -116,6 +117,7 @@ router.post('/', [
                 name,
                 isActive: true,
                 operatorEntityId,
+                createdBy: req.user.username,
             },
             include: {
                 operatorEntity: {
@@ -142,6 +144,7 @@ router.post('/', [
                 lastLogin: admin.lastLogin,
                 createdAt: admin.createdAt,
                 updatedAt: admin.updatedAt,
+                createdBy: admin.createdBy,
                 operatorEntityId: admin.operatorEntityId,
                 operatorEntityName: admin.operatorEntity.name,
                 roleName: admin.operatorEntity.role.name,

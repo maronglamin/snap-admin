@@ -395,7 +395,7 @@ router.get('/:id', authenticate, async (req: any, res) => {
             createdAt: true,
           }
         },
-        orders: {
+        orders_orders_userIdToUser: {
           select: {
             id: true,
             orderNumber: true,
@@ -406,7 +406,7 @@ router.get('/:id', authenticate, async (req: any, res) => {
             createdAt: true,
           }
         },
-        sellerOrders: {
+        orders_orders_sellerIdToUser: {
           select: {
             id: true,
             orderNumber: true,
@@ -482,8 +482,8 @@ router.get('/:id', authenticate, async (req: any, res) => {
       businessName: user.sellerKyc?.businessName || null,
       businessType: user.sellerKyc?.businessType || null,
       products: user.products,
-      orders: user.orders,
-      sellerOrders: user.sellerOrders,
+      orders: user.orders_orders_userIdToUser,
+      sellerOrders: user.orders_orders_sellerIdToUser,
       settlements: user.settlements,
       deliveryAddresses: user.deliveryAddresses,
       kycDetails: user.sellerKyc ? {
@@ -622,16 +622,28 @@ router.put('/:id/kyc', authenticate, async (req: any, res) => {
 });
 
 // @route   GET /api/users/revenue/platform
-// @desc    Get platform revenue (service fees) in GMD
+// @desc    Get platform revenue (service fees) in GMD for current month
 // @access  Private
 router.get('/revenue/platform', authenticate, async (req: any, res) => {
   try {
-    // Get service fee transactions from ExternalTransaction table
+    // Get current month start and end dates
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    // Get current month name
+    const currentMonthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+    // Get service fee transactions from ExternalTransaction table for current month only
     const serviceFeeTransactions = await prisma.externalTransaction.findMany({
       where: {
         transactionType: 'SERVICE_FEE',
         currencyCode: 'GMD',
         status: 'SUCCESS',
+        createdAt: {
+          gte: currentMonthStart,
+          lte: currentMonthEnd,
+        },
       },
       select: {
         amount: true,
@@ -639,7 +651,7 @@ router.get('/revenue/platform', authenticate, async (req: any, res) => {
       }
     });
 
-    // Calculate total service fees
+    // Calculate total service fees for current month
     const totalServiceFees = serviceFeeTransactions.reduce((sum, transaction) => {
       return sum + Number(transaction.amount);
     }, 0);
@@ -662,6 +674,7 @@ router.get('/revenue/platform', authenticate, async (req: any, res) => {
         serviceFeeRate: serviceFeeRate?.value || 0.05, // Default 5% if not configured
         transactionCount: serviceFeeTransactions.length,
         currency: 'GMD',
+        currentMonth: currentMonthName,
       },
     });
   } catch (error) {

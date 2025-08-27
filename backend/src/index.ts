@@ -25,6 +25,8 @@ import rideManagementRoutes from './routes/ride-management';
 import rideAnalyticsRoutes from './routes/ride-analytics';
 import rideServicesRoutes from './routes/ride-services';
 import rideServiceTiersRoutes from './routes/ride-service-tiers';
+import rentalRequestsRoutes from './routes/rental-requests';
+import analyticsRoutes from './routes/analytics';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -34,14 +36,14 @@ import { notFound } from './middleware/notFound';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 8081;
+const PORT = process.env.PORT || 8080;
 
 // Security middleware
 app.use(helmet());
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: process.env.CORS_ORIGIN || 'http://localhost:3001',
   credentials: true,
 }));
 
@@ -85,8 +87,7 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
-// Temporarily commented out due to schema issues
-// app.use('/api/users', userRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/settlements', settlementRoutes);
@@ -104,6 +105,8 @@ app.use('/api/ride-management', rideManagementRoutes);
 app.use('/api/ride-analytics', rideAnalyticsRoutes);
 app.use('/api/ride-services', rideServicesRoutes);
 app.use('/api/ride-service-tiers', rideServiceTiersRoutes);
+app.use('/api/rental-requests', rentalRequestsRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // 404 handler
 app.use(notFound);

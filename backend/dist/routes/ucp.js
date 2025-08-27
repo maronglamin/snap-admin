@@ -63,7 +63,7 @@ router.post('/', auth_1.authenticate, async (req, res) => {
             });
         }
         if (metadata && typeof metadata === 'object') {
-            const allowedFields = ['feeType', 'gateway', 'currency', 'minAmount', 'maxAmount'];
+            const allowedFields = ['feeType', 'gateway', 'minAmount', 'maxAmount'];
             const metadataFields = Object.keys(metadata);
             const invalidFields = metadataFields.filter(field => !allowedFields.includes(field));
             if (invalidFields.length > 0) {
@@ -90,6 +90,7 @@ router.post('/', auth_1.authenticate, async (req, res) => {
                 serviceType,
                 isActive: isActive !== undefined ? isActive : true,
                 metadata: metadata || null,
+                createdBy: req.user.username,
             },
         });
         res.status(201).json({
@@ -131,7 +132,7 @@ router.put('/:id', auth_1.authenticate, async (req, res) => {
             }
         }
         if (metadata && typeof metadata === 'object') {
-            const allowedFields = ['feeType', 'gateway', 'currency', 'minAmount', 'maxAmount'];
+            const allowedFields = ['feeType', 'gateway', 'minAmount', 'maxAmount'];
             const metadataFields = Object.keys(metadata);
             const invalidFields = metadataFields.filter(field => !allowedFields.includes(field));
             if (invalidFields.length > 0) {

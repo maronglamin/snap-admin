@@ -376,6 +376,7 @@ router.get('/available-permissions', authenticate, async (req: any, res) => {
       { value: 'JOURNALS', label: 'Journals', type: 'main' },
       { value: 'SYSTEM_CONFIG', label: 'System Configuration', type: 'main' },
       { value: 'SNAP_RIDE', label: 'SNAP Ride', type: 'main' },
+      { value: 'SNAP_RENTAL', label: 'SNAP Rental', type: 'main' },
       
       // Users submenus
       { value: 'USERS_SNAP_USERS', label: 'SNAP Users', type: 'submenu', parent: 'USERS' },
@@ -404,10 +405,17 @@ router.get('/available-permissions', authenticate, async (req: any, res) => {
       // SNAP Ride submenus
       { value: 'SNAP_RIDE_RIDER_APPLICATIONS', label: 'Ride Applications', type: 'submenu', parent: 'SNAP_RIDE' },
       { value: 'SNAP_RIDE_DRIVER_MANAGEMENT', label: 'Driver Management', type: 'submenu', parent: 'SNAP_RIDE' },
-      { value: 'SNAP_RIDE_RIDE_MANAGEMENT', label: 'Ride Management', type: 'submenu', parent: 'SNAP_RIDE' },
+      { value: 'SNAP_RIDE_RIDE_MANAGEMENT', label: 'Ride Journal', type: 'submenu', parent: 'SNAP_RIDE' },
       { value: 'SNAP_RIDE_ANALYTICS', label: 'Analytics', type: 'submenu', parent: 'SNAP_RIDE' },
       { value: 'SNAP_RIDE_RIDE_SERVICE', label: 'Ride Service', type: 'submenu', parent: 'SNAP_RIDE' },
       { value: 'SNAP_RIDE_RIDE_SERVICE_TIERS', label: 'Ride Service Tiers', type: 'submenu', parent: 'SNAP_RIDE' },
+      
+      // SNAP Rental submenus
+      { value: 'SNAP_RENTAL_REQUEST', label: 'Request', type: 'submenu', parent: 'SNAP_RENTAL' },
+      
+      // Analytics
+      { value: 'ANALYTICS', label: 'Analytics', type: 'main' },
+      { value: 'ANALYTICS_REVENUE', label: 'Revenue Analysis', type: 'submenu', parent: 'ANALYTICS' },
     ];
 
     const permissions = [

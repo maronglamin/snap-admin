@@ -157,7 +157,7 @@ JWT_SECRET=your-super-secret-jwt-key
 JWT_EXPIRES_IN=24h
 
 # CORS
-CORS_ORIGIN=http://localhost:3000
+CORS_ORIGIN=http://localhost:3001
 
 # Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000
