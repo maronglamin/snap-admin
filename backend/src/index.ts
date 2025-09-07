@@ -27,6 +27,8 @@ import rideServicesRoutes from './routes/ride-services';
 import rideServiceTiersRoutes from './routes/ride-service-tiers';
 import rentalRequestsRoutes from './routes/rental-requests';
 import analyticsRoutes from './routes/analytics';
+import branchesRoutes from './routes/branches';
+import salesRepsRoutes from './routes/sales-reps';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -43,7 +45,7 @@ app.use(helmet());
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3001',
+  origin: process.env.CORS_ORIGIN || ['http://localhost:3000', 'http://localhost:3001'],
   credentials: true,
 }));
 
@@ -107,6 +109,8 @@ app.use('/api/ride-services', rideServicesRoutes);
 app.use('/api/ride-service-tiers', rideServiceTiersRoutes);
 app.use('/api/rental-requests', rentalRequestsRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/branches', branchesRoutes);
+app.use('/api/sales-reps', salesRepsRoutes);
 
 // 404 handler
 app.use(notFound);

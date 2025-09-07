@@ -377,6 +377,7 @@ router.get('/available-permissions', authenticate, async (req: any, res) => {
       { value: 'SYSTEM_CONFIG', label: 'System Configuration', type: 'main' },
       { value: 'SNAP_RIDE', label: 'SNAP Ride', type: 'main' },
       { value: 'SNAP_RENTAL', label: 'SNAP Rental', type: 'main' },
+      { value: 'ECOMMERCE', label: 'E-commerce', type: 'main' },
       
       // Users submenus
       { value: 'USERS_SNAP_USERS', label: 'SNAP Users', type: 'submenu', parent: 'USERS' },
@@ -412,6 +413,10 @@ router.get('/available-permissions', authenticate, async (req: any, res) => {
       
       // SNAP Rental submenus
       { value: 'SNAP_RENTAL_REQUEST', label: 'Request', type: 'submenu', parent: 'SNAP_RENTAL' },
+      
+      // E-commerce submenus
+      { value: 'ECOMMERCE_SALES_OUTLETS', label: 'Sales Outlets', type: 'submenu', parent: 'ECOMMERCE' },
+      { value: 'ECOMMERCE_BRANCH_DETAILS', label: 'Branch Details', type: 'submenu', parent: 'ECOMMERCE' },
       
       // Analytics
       { value: 'ANALYTICS', label: 'Analytics', type: 'main' },

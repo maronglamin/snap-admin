@@ -30,6 +30,8 @@ const ride_services_1 = __importDefault(require("./routes/ride-services"));
 const ride_service_tiers_1 = __importDefault(require("./routes/ride-service-tiers"));
 const rental_requests_1 = __importDefault(require("./routes/rental-requests"));
 const analytics_1 = __importDefault(require("./routes/analytics"));
+const branches_1 = __importDefault(require("./routes/branches"));
+const sales_reps_1 = __importDefault(require("./routes/sales-reps"));
 const errorHandler_1 = require("./middleware/errorHandler");
 const notFound_1 = require("./middleware/notFound");
 dotenv_1.default.config();
@@ -37,7 +39,7 @@ const app = (0, express_1.default)();
 const PORT = process.env.PORT || 8080;
 app.use((0, helmet_1.default)());
 app.use((0, cors_1.default)({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3001',
+    origin: process.env.CORS_ORIGIN || ['http://localhost:3000', 'http://localhost:3001'],
     credentials: true,
 }));
 if (process.env.NODE_ENV === 'production') {
@@ -92,6 +94,8 @@ app.use('/api/ride-services', ride_services_1.default);
 app.use('/api/ride-service-tiers', ride_service_tiers_1.default);
 app.use('/api/rental-requests', rental_requests_1.default);
 app.use('/api/analytics', analytics_1.default);
+app.use('/api/branches', branches_1.default);
+app.use('/api/sales-reps', sales_reps_1.default);
 app.use(notFound_1.notFound);
 app.use(errorHandler_1.errorHandler);
 app.listen(PORT, () => {

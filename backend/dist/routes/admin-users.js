@@ -41,6 +41,8 @@ router.get('/', auth_1.authenticate, async (req, res) => {
             operatorEntityId: admin.operatorEntityId,
             operatorEntityName: admin.operatorEntity.name,
             roleName: admin.operatorEntity.role.name,
+            mfaEnabled: admin.mfaEnabled,
+            mfaVerified: admin.mfaVerified,
         }));
         res.json({
             success: true,
@@ -167,6 +169,7 @@ router.put('/:id', [
     (0, express_validator_1.body)('name').notEmpty().withMessage('Name is required'),
     (0, express_validator_1.body)('operatorEntityId').notEmpty().withMessage('Operator entity is required'),
     (0, express_validator_1.body)('isActive').isBoolean().withMessage('isActive must be a boolean'),
+    (0, express_validator_1.body)('mfaEnabled').optional().isBoolean().withMessage('mfaEnabled must be a boolean'),
 ], async (req, res) => {
     try {
         const errors = (0, express_validator_1.validationResult)(req);
@@ -177,7 +180,7 @@ router.put('/:id', [
             });
         }
         const { id } = req.params;
-        const { email, username, name, operatorEntityId, isActive } = req.body;
+        const { email, username, name, operatorEntityId, isActive, mfaEnabled } = req.body;
         const existingAdmin = await prisma.admin.findUnique({
             where: { id }
         });
@@ -227,15 +230,22 @@ router.put('/:id', [
                 error: 'Operator entity not found',
             });
         }
+        const updateData = {
+            email,
+            username,
+            name,
+            isActive,
+            operatorEntityId,
+            mfaEnabled: mfaEnabled || false,
+        };
+        if (!mfaEnabled) {
+            updateData.mfaVerified = false;
+            updateData.mfaSecret = null;
+            updateData.mfaBackupCodes = [];
+        }
         const updatedAdmin = await prisma.admin.update({
             where: { id },
-            data: {
-                email,
-                username,
-                name,
-                isActive,
-                operatorEntityId,
-            },
+            data: updateData,
             include: {
                 operatorEntity: {
                     include: {
@@ -264,6 +274,8 @@ router.put('/:id', [
                 operatorEntityId: updatedAdmin.operatorEntityId,
                 operatorEntityName: updatedAdmin.operatorEntity.name,
                 roleName: updatedAdmin.operatorEntity.role.name,
+                mfaEnabled: updatedAdmin.mfaEnabled,
+                mfaVerified: updatedAdmin.mfaVerified,
             },
             message: 'Admin user updated successfully',
         });

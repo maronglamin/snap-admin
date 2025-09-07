@@ -42,6 +42,8 @@ router.get('/', authenticate, async (req: any, res) => {
       operatorEntityId: admin.operatorEntityId,
       operatorEntityName: admin.operatorEntity.name,
       roleName: admin.operatorEntity.role.name,
+      mfaEnabled: admin.mfaEnabled,
+      mfaVerified: admin.mfaVerified,
     }));
 
     res.json({
@@ -190,6 +192,7 @@ router.put('/:id', [
   body('name').notEmpty().withMessage('Name is required'),
   body('operatorEntityId').notEmpty().withMessage('Operator entity is required'),
   body('isActive').isBoolean().withMessage('isActive must be a boolean'),
+  body('mfaEnabled').optional().isBoolean().withMessage('mfaEnabled must be a boolean'),
 ], async (req: any, res) => {
   try {
     const errors = validationResult(req);
@@ -201,7 +204,7 @@ router.put('/:id', [
     }
 
     const { id } = req.params;
-    const { email, username, name, operatorEntityId, isActive } = req.body;
+    const { email, username, name, operatorEntityId, isActive, mfaEnabled } = req.body;
 
     // Check if admin exists
     const existingAdmin = await prisma.admin.findUnique({
@@ -264,16 +267,27 @@ router.put('/:id', [
       });
     }
 
+    // Prepare update data
+    const updateData: any = {
+      email,
+      username,
+      name,
+      isActive,
+      operatorEntityId,
+      mfaEnabled: mfaEnabled || false,
+    };
+
+    // If MFA is being disabled, also reset MFA-related fields
+    if (!mfaEnabled) {
+      updateData.mfaVerified = false;
+      updateData.mfaSecret = null;
+      updateData.mfaBackupCodes = [];
+    }
+
     // Update the admin user
     const updatedAdmin = await prisma.admin.update({
       where: { id },
-      data: {
-        email,
-        username,
-        name,
-        isActive,
-        operatorEntityId,
-      },
+      data: updateData,
       include: {
         operatorEntity: {
           include: {
@@ -303,6 +317,8 @@ router.put('/:id', [
         operatorEntityId: updatedAdmin.operatorEntityId,
         operatorEntityName: updatedAdmin.operatorEntity.name,
         roleName: updatedAdmin.operatorEntity.role.name,
+        mfaEnabled: updatedAdmin.mfaEnabled,
+        mfaVerified: updatedAdmin.mfaVerified,
       },
       message: 'Admin user updated successfully',
     });
@@ -400,5 +416,7 @@ router.get('/operator-entities', authenticate, async (req: any, res) => {
     });
   }
 });
+
+
 
 export default router; 
