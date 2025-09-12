@@ -168,6 +168,352 @@ router.get('/', authenticate, requirePermission('ECOMMERCE_SALES_OUTLETS', 'VIEW
   }
 });
 
+// GET /api/branches/parent-sellers
+// Returns parent sellers with their branches and sales reps
+router.get('/parent-sellers', authenticate, requirePermission('ECOMMERCE_SALES_OUTLETS', 'VIEW'), async (req, res) => {
+  try {
+    const { page = 1, limit = 15, timeFilter = 'all', startDate, endDate } = req.query;
+
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Build date filter
+    let dateFilter: any = {};
+    if (timeFilter === 'custom' && startDate && endDate) {
+      dateFilter = {
+        gte: new Date(startDate as string),
+        lte: new Date(endDate as string),
+      };
+    } else if (timeFilter !== 'all') {
+      const now = new Date();
+      switch (timeFilter) {
+        case 'week':
+          dateFilter = { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) };
+          break;
+        case 'month':
+          dateFilter = { gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) };
+          break;
+        case 'quarter':
+          dateFilter = { gte: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000) };
+          break;
+        case 'year':
+          dateFilter = { gte: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000) };
+          break;
+      }
+    }
+
+    // Get distinct parent sellers from branches
+    const parentSellers = await prisma.user.findMany({
+      where: {
+        branches: {
+          some: {}
+        },
+        ...(Object.keys(dateFilter).length > 0 && {
+          createdAt: dateFilter
+        })
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        phoneNumber: true,
+        createdAt: true,
+        branches: {
+          select: {
+            id: true,
+            name: true,
+            address: true,
+            city: true,
+            state: true,
+            country: true,
+            phoneNumber: true,
+            email: true,
+            isActive: true,
+            createdAt: true,
+            salesReps: {
+              select: {
+                id: true,
+                userId: true,
+                user: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    phoneNumber: true,
+                  }
+                }
+              }
+            },
+            _count: {
+              select: {
+                salesReps: true,
+              }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limitNum,
+    });
+
+    // Calculate products and orders counts for each parent seller
+    const parentSellersWithCounts = await Promise.all(
+      parentSellers.map(async (parentSeller) => {
+        // Get all sales rep user IDs from all branches
+        const allSalesRepUserIds = parentSeller.branches.flatMap(branch => 
+          branch.salesReps.map(rep => rep.userId)
+        );
+
+        // Count total products and orders across all sales reps
+        const totalProducts = allSalesRepUserIds.length > 0 
+          ? await prisma.product.count({
+              where: {
+                sellerId: {
+                  in: allSalesRepUserIds,
+                },
+              },
+            })
+          : 0;
+
+        const totalOrders = allSalesRepUserIds.length > 0
+          ? await prisma.orders.count({
+              where: {
+                sellerId: {
+                  in: allSalesRepUserIds,
+                },
+              },
+            })
+          : 0;
+
+        // Calculate counts for each branch
+        const branchesWithCounts = await Promise.all(
+          parentSeller.branches.map(async (branch) => {
+            const branchSalesRepUserIds = branch.salesReps.map(rep => rep.userId);
+
+            const branchProducts = branchSalesRepUserIds.length > 0 
+              ? await prisma.product.count({
+                  where: {
+                    sellerId: {
+                      in: branchSalesRepUserIds,
+                    },
+                  },
+                })
+              : 0;
+
+            const branchOrders = branchSalesRepUserIds.length > 0
+              ? await prisma.orders.count({
+                  where: {
+                    sellerId: {
+                      in: branchSalesRepUserIds,
+                    },
+                  },
+                })
+              : 0;
+
+            return {
+              ...branch,
+              _count: {
+                ...branch._count,
+                products: branchProducts,
+                orders: branchOrders,
+              }
+            };
+          })
+        );
+
+        return {
+          ...parentSeller,
+          branches: branchesWithCounts,
+          _count: {
+            branches: parentSeller.branches.length,
+            salesReps: allSalesRepUserIds.length,
+            products: totalProducts,
+            orders: totalOrders,
+          }
+        };
+      })
+    );
+
+    // Get total count for pagination
+    const total = await prisma.user.count({
+      where: {
+        branches: {
+          some: {}
+        },
+        ...(Object.keys(dateFilter).length > 0 && {
+          createdAt: dateFilter
+        })
+      }
+    });
+
+    const totalPages = Math.ceil(total / limitNum);
+
+    res.json({
+      success: true,
+      data: parentSellersWithCounts,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages,
+        hasNext: pageNum < totalPages,
+        hasPrev: pageNum > 1,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching parent sellers:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch parent sellers',
+    });
+  }
+});
+
+// GET /api/branches/parent-sellers/:id
+// Get a single parent seller with their branches and sales reps
+router.get('/parent-sellers/:id', authenticate, requirePermission('ECOMMERCE_SALES_OUTLETS', 'VIEW'), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const parentSeller = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        phoneNumber: true,
+        createdAt: true,
+        branches: {
+          select: {
+            id: true,
+            name: true,
+            address: true,
+            city: true,
+            state: true,
+            country: true,
+            phoneNumber: true,
+            email: true,
+            isActive: true,
+            createdAt: true,
+            salesReps: {
+              select: {
+                id: true,
+                userId: true,
+                user: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    phoneNumber: true,
+                  }
+                }
+              }
+            },
+            _count: {
+              select: {
+                salesReps: true,
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!parentSeller) {
+      return res.status(404).json({
+        success: false,
+        error: 'Parent seller not found',
+      });
+    }
+
+    // Calculate products and orders counts
+    const allSalesRepUserIds = parentSeller.branches.flatMap(branch => 
+      branch.salesReps.map(rep => rep.userId)
+    );
+
+    // Count total products and orders across all sales reps
+    const totalProducts = allSalesRepUserIds.length > 0 
+      ? await prisma.product.count({
+          where: {
+            sellerId: {
+              in: allSalesRepUserIds,
+            },
+          },
+        })
+      : 0;
+
+    const totalOrders = allSalesRepUserIds.length > 0
+      ? await prisma.orders.count({
+          where: {
+            sellerId: {
+              in: allSalesRepUserIds,
+            },
+          },
+        })
+      : 0;
+
+    // Calculate counts for each branch
+    const branchesWithCounts = await Promise.all(
+      parentSeller.branches.map(async (branch) => {
+        const branchSalesRepUserIds = branch.salesReps.map(rep => rep.userId);
+
+        const branchProducts = branchSalesRepUserIds.length > 0 
+          ? await prisma.product.count({
+              where: {
+                sellerId: {
+                  in: branchSalesRepUserIds,
+                },
+              },
+            })
+          : 0;
+
+        const branchOrders = branchSalesRepUserIds.length > 0
+          ? await prisma.orders.count({
+              where: {
+                sellerId: {
+                  in: branchSalesRepUserIds,
+                },
+              },
+            })
+          : 0;
+
+        return {
+          ...branch,
+          _count: {
+            ...branch._count,
+            products: branchProducts,
+            orders: branchOrders,
+          }
+        };
+      })
+    );
+
+    const parentSellerWithCounts = {
+      ...parentSeller,
+      branches: branchesWithCounts,
+      _count: {
+        branches: parentSeller.branches.length,
+        salesReps: allSalesRepUserIds.length,
+        products: totalProducts,
+        orders: totalOrders,
+      }
+    };
+
+    res.json({
+      success: true,
+      data: parentSellerWithCounts,
+    });
+  } catch (error) {
+    console.error('Error fetching parent seller:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch parent seller',
+    });
+  }
+});
+
 // Get branch by ID with detailed information
 router.get('/:id', authenticate, requirePermission('ECOMMERCE_BRANCH_DETAILS', 'VIEW'), async (req, res) => {
   try {

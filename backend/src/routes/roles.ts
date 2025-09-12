@@ -417,6 +417,7 @@ router.get('/available-permissions', authenticate, async (req: any, res) => {
       // E-commerce submenus
       { value: 'ECOMMERCE_SALES_OUTLETS', label: 'Sales Outlets', type: 'submenu', parent: 'ECOMMERCE' },
       { value: 'ECOMMERCE_BRANCH_DETAILS', label: 'Branch Details', type: 'submenu', parent: 'ECOMMERCE' },
+      { value: 'ECOMMERCE_PRINCIPAL_BUSINESS', label: 'Principal Business', type: 'submenu', parent: 'ECOMMERCE' },
       
       // Analytics
       { value: 'ANALYTICS', label: 'Analytics', type: 'main' },
