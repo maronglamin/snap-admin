@@ -32,6 +32,7 @@ const rental_requests_1 = __importDefault(require("./routes/rental-requests"));
 const analytics_1 = __importDefault(require("./routes/analytics"));
 const branches_1 = __importDefault(require("./routes/branches"));
 const sales_reps_1 = __importDefault(require("./routes/sales-reps"));
+const principal_business_1 = __importDefault(require("./routes/principal-business"));
 const errorHandler_1 = require("./middleware/errorHandler");
 const notFound_1 = require("./middleware/notFound");
 dotenv_1.default.config();
@@ -96,6 +97,7 @@ app.use('/api/rental-requests', rental_requests_1.default);
 app.use('/api/analytics', analytics_1.default);
 app.use('/api/branches', branches_1.default);
 app.use('/api/sales-reps', sales_reps_1.default);
+app.use('/api/principal-business', principal_business_1.default);
 app.use(notFound_1.notFound);
 app.use(errorHandler_1.errorHandler);
 app.listen(PORT, () => {

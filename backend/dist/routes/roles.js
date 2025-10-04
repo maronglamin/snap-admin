@@ -334,6 +334,7 @@ router.get('/available-permissions', auth_1.authenticate, async (req, res) => {
             { value: 'SNAP_RENTAL_REQUEST', label: 'Request', type: 'submenu', parent: 'SNAP_RENTAL' },
             { value: 'ECOMMERCE_SALES_OUTLETS', label: 'Sales Outlets', type: 'submenu', parent: 'ECOMMERCE' },
             { value: 'ECOMMERCE_BRANCH_DETAILS', label: 'Branch Details', type: 'submenu', parent: 'ECOMMERCE' },
+            { value: 'ECOMMERCE_PRINCIPAL_BUSINESS', label: 'Principal Business', type: 'submenu', parent: 'ECOMMERCE' },
             { value: 'ANALYTICS', label: 'Analytics', type: 'main' },
             { value: 'ANALYTICS_REVENUE', label: 'Revenue Analysis', type: 'submenu', parent: 'ANALYTICS' },
         ];

@@ -417,6 +417,81 @@ router.get('/operator-entities', authenticate, async (req: any, res) => {
   }
 });
 
+ 
+// @route   PUT /api/admin-users/:id/reset-password
+// @desc    Reset an admin user's password (override current)
+// @access  Private
+router.put(
+  '/:id/reset-password',
+  [
+    authenticate,
+    body('password')
+      .isLength({ min: 6 })
+      .withMessage('Password must be at least 6 characters'),
+  ],
+  async (req: any, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          error: errors.array()[0].msg,
+        });
+      }
 
+      const { id } = req.params;
+      const { password } = req.body;
 
-export default router; 
+      const admin = await prisma.admin.findUnique({ where: { id } });
+      if (!admin) {
+        return res.status(404).json({ success: false, error: 'Admin user not found' });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 12);
+
+      const updated = await prisma.admin.update({
+        where: { id },
+        data: {
+          password: hashedPassword,
+          // Optional security posture: require MFA re-verification after password reset
+          mfaVerified: admin.mfaEnabled ? false : admin.mfaVerified,
+          updatedAt: new Date(),
+        },
+        include: {
+          operatorEntity: {
+            include: {
+              role: {
+                select: { id: true, name: true, description: true },
+              },
+            },
+          },
+        },
+      });
+
+      return res.json({
+        success: true,
+        data: {
+          id: updated.id,
+          email: updated.email,
+          username: updated.username,
+          name: updated.name,
+          isActive: updated.isActive,
+          lastLogin: updated.lastLogin,
+          createdAt: updated.createdAt,
+          updatedAt: updated.updatedAt,
+          operatorEntityId: updated.operatorEntityId,
+          operatorEntityName: updated.operatorEntity.name,
+          roleName: updated.operatorEntity.role.name,
+          mfaEnabled: updated.mfaEnabled,
+          mfaVerified: updated.mfaVerified,
+        },
+        message: 'Password reset successfully',
+      });
+    } catch (error) {
+      console.error('Reset admin password error:', error);
+      return res.status(500).json({ success: false, error: 'Server error' });
+    }
+  }
+);
+
+export default router;

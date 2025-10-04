@@ -531,4 +531,61 @@ router.post('/logout', authenticate, (req, res) => {
   });
 });
 
+// @route   PUT /api/auth/change-password
+// @desc    Change current user's password (requires old password verification)
+// @access  Private
+router.put('/change-password', [
+  authenticate,
+  body('oldPassword').notEmpty().withMessage('Current password is required'),
+  body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters'),
+], async (req: any, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: errors.array()[0].msg,
+      });
+    }
+
+    const { oldPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    // Get current user
+    const admin = await prisma.admin.findUnique({ where: { id: userId } });
+    if (!admin) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    // Verify old password
+    const isOldPasswordValid = await bcrypt.compare(oldPassword, admin.password);
+    if (!isOldPasswordValid) {
+      return res.status(400).json({
+        success: false,
+        error: 'Current password does not match',
+      });
+    }
+
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+
+    // Update password
+    await prisma.admin.update({
+      where: { id: userId },
+      data: {
+        password: hashedNewPassword,
+        updatedAt: new Date(),
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: 'Password changed successfully',
+    });
+  } catch (error) {
+    console.error('Change password error:', error);
+    return res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
 export default router; 

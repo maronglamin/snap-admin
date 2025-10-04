@@ -45,11 +45,17 @@ router.get('/', auth_1.authenticate, (0, permissions_1.requirePermission)('ECOMM
                 createdAt: 'desc',
             },
         });
-        res.json(salesReps);
+        res.json({
+            success: true,
+            data: salesReps,
+        });
     }
     catch (error) {
         console.error('Error fetching sales reps:', error);
-        res.status(500).json({ error: 'Failed to fetch sales reps' });
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch sales reps'
+        });
     }
 });
 router.get('/:id', auth_1.authenticate, (0, permissions_1.requirePermission)('ECOMMERCE_BRANCH_DETAILS', 'VIEW'), async (req, res) => {

@@ -431,5 +431,49 @@ router.post('/logout', auth_1.authenticate, (req, res) => {
         message: 'Logout successful',
     });
 });
+router.put('/change-password', [
+    auth_1.authenticate,
+    (0, express_validator_1.body)('oldPassword').notEmpty().withMessage('Current password is required'),
+    (0, express_validator_1.body)('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters'),
+], async (req, res) => {
+    try {
+        const errors = (0, express_validator_1.validationResult)(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                error: errors.array()[0].msg,
+            });
+        }
+        const { oldPassword, newPassword } = req.body;
+        const userId = req.user.id;
+        const admin = await prisma.admin.findUnique({ where: { id: userId } });
+        if (!admin) {
+            return res.status(404).json({ success: false, error: 'User not found' });
+        }
+        const isOldPasswordValid = await bcryptjs_1.default.compare(oldPassword, admin.password);
+        if (!isOldPasswordValid) {
+            return res.status(400).json({
+                success: false,
+                error: 'Current password does not match',
+            });
+        }
+        const hashedNewPassword = await bcryptjs_1.default.hash(newPassword, 12);
+        await prisma.admin.update({
+            where: { id: userId },
+            data: {
+                password: hashedNewPassword,
+                updatedAt: new Date(),
+            },
+        });
+        return res.json({
+            success: true,
+            message: 'Password changed successfully',
+        });
+    }
+    catch (error) {
+        console.error('Change password error:', error);
+        return res.status(500).json({ success: false, error: 'Server error' });
+    }
+});
 exports.default = router;
 //# sourceMappingURL=auth.js.map
