@@ -1,10 +1,14 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, EntityType as PrismaEntityType, Permission as PrismaPermission } from '@prisma/client';
 import { authenticate } from '../middleware/auth';
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+// Build allow-lists from Prisma enums to validate incoming values
+const ALLOWED_ENTITY_TYPES = new Set(Object.values(PrismaEntityType));
+const ALLOWED_PERMISSIONS = new Set(Object.values(PrismaPermission));
 
 // @route   GET /api/roles
 // @desc    Get all roles with their permissions
@@ -113,11 +117,25 @@ router.post('/', [
     // Create permissions for the role
     const permissionData = [];
     for (const [entityType, entityPermissions] of Object.entries(permissions)) {
+      if (!ALLOWED_ENTITY_TYPES.has(entityType as PrismaEntityType)) {
+        return res.status(400).json({
+          success: false,
+          error: `Invalid entityType: ${entityType}. Ensure your database enum is up-to-date.`,
+        });
+      }
+
       for (const [permission, isGranted] of Object.entries(entityPermissions as any)) {
+        if (!ALLOWED_PERMISSIONS.has(permission as PrismaPermission)) {
+          return res.status(400).json({
+            success: false,
+            error: `Invalid permission: ${permission} for entityType ${entityType}.`,
+          });
+        }
+
         permissionData.push({
           roleId: role.id,
-          entityType: entityType as any,
-          permission: permission as any,
+          entityType: entityType as PrismaEntityType,
+          permission: permission as PrismaPermission,
           isGranted: Boolean(isGranted),
         });
       }
@@ -231,11 +249,25 @@ router.put('/:id', [
     // Create new permissions
     const permissionData = [];
     for (const [entityType, entityPermissions] of Object.entries(permissions)) {
+      if (!ALLOWED_ENTITY_TYPES.has(entityType as PrismaEntityType)) {
+        return res.status(400).json({
+          success: false,
+          error: `Invalid entityType: ${entityType}. Ensure your database enum is up-to-date.`,
+        });
+      }
+
       for (const [permission, isGranted] of Object.entries(entityPermissions as any)) {
+        if (!ALLOWED_PERMISSIONS.has(permission as PrismaPermission)) {
+          return res.status(400).json({
+            success: false,
+            error: `Invalid permission: ${permission} for entityType ${entityType}.`,
+          });
+        }
+
         permissionData.push({
           roleId: id,
-          entityType: entityType as any,
-          permission: permission as any,
+          entityType: entityType as PrismaEntityType,
+          permission: permission as PrismaPermission,
           isGranted: Boolean(isGranted),
         });
       }
