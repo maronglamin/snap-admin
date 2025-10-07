@@ -67,8 +67,25 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-// Use a RegExp to match all paths for preflight in Express 5
-app.options(/.*/, cors(corsOptions));
+
+// Global preflight handler without path-to-regexp patterns (Express 5 safe)
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    const origin = req.headers.origin as string | undefined;
+    if (!origin || allowedOrigins.includes(origin)) {
+      if (origin) {
+        res.header('Access-Control-Allow-Origin', origin);
+        res.header('Vary', 'Origin');
+      }
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+      return res.sendStatus(204);
+    }
+    return res.sendStatus(204);
+  }
+  next();
+});
 
 // Rate limiting - only in production
 if (process.env.NODE_ENV === 'production') {
