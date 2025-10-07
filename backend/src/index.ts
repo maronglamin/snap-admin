@@ -67,7 +67,8 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+// Express 5 uses path-to-regexp v6 which doesn't support '*'; use '(.*)' instead
+app.options('(.*)', cors(corsOptions));
 
 // Rate limiting - only in production
 if (process.env.NODE_ENV === 'production') {
