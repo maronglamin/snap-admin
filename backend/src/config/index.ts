@@ -1,7 +1,7 @@
 export const config = {
   // Database
   database: {
-    url: process.env.DATABASE_URL || 'postgresql://username:password@localhost:5432/marketplace_db',
+    url: process.env.DATABASE_URL || 'postgresql://username:password@207.154.220.128:5432/marketplace_db',
   },
   
   // JWT
@@ -22,7 +22,7 @@ export const config = {
   
   // CORS
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3001',
+    origin: process.env.CORS_ORIGIN || 'http://207.154.220.128:3001',
   },
 };
 

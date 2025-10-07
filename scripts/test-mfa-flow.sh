@@ -61,15 +61,15 @@ echo "🌐 Services Status:"
 echo "-----------------"
 
 # Check if backend is running
-if curl -s http://localhost:3001/api/auth/login > /dev/null 2>&1; then
-    echo "✅ Backend server running on http://localhost:3001"
+if curl -s http://207.154.220.128:3001/api/auth/login > /dev/null 2>&1; then
+    echo "✅ Backend server running on http://207.154.220.128:3001"
 else
     echo "❌ Backend server not responding"
 fi
 
 # Check if frontend is running
-if curl -s http://localhost:3000 > /dev/null 2>&1; then
-    echo "✅ Frontend server running on http://localhost:3000"
+if curl -s http://207.154.220.128:3000 > /dev/null 2>&1; then
+    echo "✅ Frontend server running on http://207.154.220.128:3000"
 else
     echo "❌ Frontend server not responding"
 fi
@@ -77,7 +77,7 @@ fi
 echo ""
 echo "🧪 Testing Instructions:"
 echo "----------------------"
-echo "1. Open http://localhost:3000 in your browser"
+echo "1. Open http://207.154.220.128:3000 in your browser"
 echo "2. Attempt to login with existing admin credentials"
 echo "3. Complete MFA setup flow (first time users)"
 echo "4. Test MFA verification (subsequent logins)"

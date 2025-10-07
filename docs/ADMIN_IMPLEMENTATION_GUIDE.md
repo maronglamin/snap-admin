@@ -26,10 +26,10 @@
 - [ ] **Configure environment variables**
   ```env
   # .env.local
-  NEXT_PUBLIC_API_URL=http://localhost:3001
-  NEXT_PUBLIC_WS_URL=ws://localhost:3001
+  NEXT_PUBLIC_API_URL=http://207.154.220.128:3001
+  NEXT_PUBLIC_WS_URL=ws://207.154.220.128:3001
   NEXTAUTH_SECRET=your-secret-key
-  NEXTAUTH_URL=http://localhost:3001
+  NEXTAUTH_URL=http://207.154.220.128:3001
   ```
 
 ## 📋 Implementation Tasks by Priority

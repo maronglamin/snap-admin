@@ -48,7 +48,7 @@ Backend API for the SNAP Marketplace Admin Panel built with Express.js, TypeScri
    
    Update the `.env` file with your database credentials:
    ```env
-   DATABASE_URL="postgresql://username:password@localhost:5432/snap_admin_db?schema=public"
+   DATABASE_URL="postgresql://username:password@207.154.220.128:5432/snap_admin_db?schema=public"
    JWT_SECRET="your-super-secret-jwt-key"
    ```
 
@@ -85,7 +85,7 @@ Backend API for the SNAP Marketplace Admin Panel built with Express.js, TypeScri
 
 2. **Update DATABASE_URL in .env**
    ```env
-   DATABASE_URL="postgresql://snap_user:snap_password@localhost:5432/snap_admin_db?schema=public"
+   DATABASE_URL="postgresql://snap_user:snap_password@207.154.220.128:5432/snap_admin_db?schema=public"
    ```
 
 ### Using Local PostgreSQL
@@ -146,7 +146,7 @@ Backend API for the SNAP Marketplace Admin Panel built with Express.js, TypeScri
 
 ```env
 # Database
-DATABASE_URL="postgresql://username:password@localhost:5432/snap_admin_db?schema=public"
+DATABASE_URL="postgresql://username:password@207.154.220.128:5432/snap_admin_db?schema=public"
 
 # Server
 PORT=3001
@@ -157,7 +157,7 @@ JWT_SECRET=your-super-secret-jwt-key
 JWT_EXPIRES_IN=24h
 
 # CORS
-CORS_ORIGIN=http://localhost:3001
+CORS_ORIGIN=http://207.154.220.128:3001
 
 # Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000
