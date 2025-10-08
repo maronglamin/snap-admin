@@ -45,7 +45,7 @@ const PORT = process.env.PORT || 8080;
 app.use(helmet());
 
 // CORS configuration
-const defaultAllowedOrigins = ['http://207.154.220.128:3000', 'http://207.154.220.128:3001'];
+const defaultAllowedOrigins = ['http://snap-admin.cloudnexus.biz:3000', 'http://snap-admin.cloudnexus.biz:3001'];
 const envOrigins = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || '')
   .split(',')
   .map(o => o.trim())
@@ -161,7 +161,7 @@ app.use(errorHandler);
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🔗 Health check: http://207.154.220.128:${PORT}/health`);
+  console.log(`🔗 Health check: http://snap-admin.cloudnexus.biz:${PORT}/health`);
 });
 
 export default app; 

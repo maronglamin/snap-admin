@@ -171,7 +171,7 @@ JWT_SECRET=your-secret-key
 JWT_EXPIRES_IN=24h
 
 # Database
-DATABASE_URL=postgresql://user:password@207.154.220.128:5432/database
+DATABASE_URL=postgresql://user:password@snap-admin.cloudnexus.biz:5432/database
 ```
 
 ### MFA Settings
