@@ -30,6 +30,7 @@ import analyticsRoutes from './routes/analytics';
 import branchesRoutes from './routes/branches';
 import salesRepsRoutes from './routes/sales-reps';
 import principalBusinessRoutes from './routes/principal-business';
+import authenticationRoutes from './routes/authentication';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -150,6 +151,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/branches', branchesRoutes);
 app.use('/api/sales-reps', salesRepsRoutes);
 app.use('/api/principal-business', principalBusinessRoutes);
+app.use('/api/authentication', authenticationRoutes);
 
 // 404 handler
 app.use(notFound);

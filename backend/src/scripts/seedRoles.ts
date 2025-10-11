@@ -31,7 +31,9 @@ const entityTypes = [
   'SNAP_RIDE_ANALYTICS',
   'SNAP_RIDE_RIDE_SERVICE',
   'ANALYTICS',
-  'ANALYTICS_REVENUE'
+  'ANALYTICS_REVENUE',
+  'AUTHENTICATION',
+  'AUTHENTICATION_DEVICE_AUTHENTICATION'
 ];
 
 const permissions = ['VIEW', 'ADD', 'EDIT', 'DELETE', 'EXPORT'];
@@ -86,7 +88,7 @@ async function seedRoles() {
     const managerPermissions = [];
     const managerEntityTypes = [
       // Main menus (no system config)
-      'DASHBOARD', 'USERS', 'PRODUCTS', 'ORDERS', 'SETTLEMENTS', 'JOURNALS', 'SNAP_RIDE',
+      'DASHBOARD', 'USERS', 'PRODUCTS', 'ORDERS', 'SETTLEMENTS', 'JOURNALS', 'SNAP_RIDE', 'AUTHENTICATION',
       
       // Users submenus
       'USERS_SNAP_USERS', 'USERS_KYC_APPROVAL',
@@ -106,6 +108,9 @@ async function seedRoles() {
       // Analytics
       'ANALYTICS',
       'ANALYTICS_REVENUE',
+
+      // Authentication submenus
+      'AUTHENTICATION_DEVICE_AUTHENTICATION',
     ];
     
     for (const entityType of managerEntityTypes) {
@@ -183,12 +188,13 @@ async function seedRoles() {
     }
 
     // View access to other entities and their submenus
-    const viewOnlyMainEntities = ['DASHBOARD', 'PRODUCTS', 'ORDERS', 'SETTLEMENTS', 'JOURNALS', 'SNAP_RIDE'];
+    const viewOnlyMainEntities = ['DASHBOARD', 'PRODUCTS', 'ORDERS', 'SETTLEMENTS', 'JOURNALS', 'SNAP_RIDE', 'AUTHENTICATION'];
     const viewOnlySubEntities = [
       'PRODUCTS_CATEGORIES',
       'SETTLEMENTS_REQUESTS', 'SETTLEMENTS_SHEET', 'SETTLEMENTS_CUMULATIVE_ENTRIES',
       'JOURNALS_STRIPE_PAYMENT_REPORT', 'JOURNALS_SNAP_FEE_REPORT', 'JOURNALS_AUDIT_REPORT',
       'SNAP_RIDE_RIDER_APPLICATIONS', 'SNAP_RIDE_DRIVER_MANAGEMENT', 'SNAP_RIDE_RIDE_MANAGEMENT', 'SNAP_RIDE_ANALYTICS',
+      'AUTHENTICATION_DEVICE_AUTHENTICATION',
     ];
     
     for (const entityType of [...viewOnlyMainEntities, ...viewOnlySubEntities]) {

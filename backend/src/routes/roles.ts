@@ -428,6 +428,10 @@ router.get('/available-permissions', authenticate, async (req: any, res) => {
       { value: 'JOURNALS_SNAP_FEE_REPORT', label: 'Snap Fee Report', type: 'submenu', parent: 'JOURNALS' },
       { value: 'JOURNALS_AUDIT_REPORT', label: 'Transaction Logs', type: 'submenu', parent: 'JOURNALS' },
       
+      // Authentication
+      { value: 'AUTHENTICATION', label: 'Authentication', type: 'main' },
+      { value: 'AUTHENTICATION_DEVICE_AUTHENTICATION', label: 'Device Authentication', type: 'submenu', parent: 'AUTHENTICATION' },
+      
       // System Config submenus
       { value: 'SYSTEM_CONFIG_ROLES', label: 'Roles', type: 'submenu', parent: 'SYSTEM_CONFIG' },
       { value: 'SYSTEM_CONFIG_OPERATOR_ENTITY', label: 'User Container', type: 'submenu', parent: 'SYSTEM_CONFIG' },
