@@ -44,8 +44,10 @@ router.get('/stripe-payments', authenticate, async (req: any, res) => {
       where.OR = [
         { appTransactionId: { contains: search, mode: 'insensitive' } },
         { orderId: { contains: search, mode: 'insensitive' } },
+        { rideRequestId: { contains: search, mode: 'insensitive' } },
         { amount: { equals: parseFloat(search) || undefined } },
         { order: { orderNumber: { contains: search, mode: 'insensitive' } } },
+        { rideRequest: { requestId: { contains: search, mode: 'insensitive' } } },
       ];
     }
 
@@ -75,6 +77,7 @@ router.get('/stripe-payments', authenticate, async (req: any, res) => {
     const transactions = await prisma.externalTransaction.findMany({
       where,
       include: {
+        rideRequest: true,
         order: true,
         customer: true,
         seller: true,
@@ -139,8 +142,10 @@ router.get('/stripe-payments/export', authenticate, async (req: any, res) => {
       where.OR = [
         { appTransactionId: { contains: search, mode: 'insensitive' } },
         { orderId: { contains: search, mode: 'insensitive' } },
+        { rideRequestId: { contains: search, mode: 'insensitive' } },
         { amount: { equals: parseFloat(search) || undefined } },
         { order: { orderNumber: { contains: search, mode: 'insensitive' } } },
+        { rideRequest: { requestId: { contains: search, mode: 'insensitive' } } },
       ];
     }
 
@@ -166,6 +171,7 @@ router.get('/stripe-payments/export', authenticate, async (req: any, res) => {
     const transactions = await prisma.externalTransaction.findMany({
       where,
       include: {
+        rideRequest: true,
         order: true,
         customer: true,
         seller: true,
@@ -198,6 +204,7 @@ router.get('/stripe-payments/:id', authenticate, async (req: any, res) => {
     const transaction = await prisma.externalTransaction.findUnique({
       where: { id },
       include: {
+        rideRequest: true,
         order: true,
         customer: true,
         seller: true,
@@ -254,8 +261,10 @@ router.get('/snap-fees', authenticate, async (req: any, res) => {
       where.OR = [
         { appTransactionId: { contains: search, mode: 'insensitive' } },
         { orderId: { contains: search, mode: 'insensitive' } },
+        { rideRequestId: { contains: search, mode: 'insensitive' } },
         { amount: { equals: parseFloat(search) || undefined } },
         { order: { orderNumber: { contains: search, mode: 'insensitive' } } },
+        { rideRequest: { requestId: { contains: search, mode: 'insensitive' } } },
       ];
     }
 
@@ -285,6 +294,7 @@ router.get('/snap-fees', authenticate, async (req: any, res) => {
     const transactions = await prisma.externalTransaction.findMany({
       where,
       include: {
+        rideRequest: true,
         order: true,
         customer: true,
         seller: true,
@@ -339,8 +349,10 @@ router.get('/snap-fees/export', authenticate, async (req: any, res) => {
       where.OR = [
         { appTransactionId: { contains: search, mode: 'insensitive' } },
         { orderId: { contains: search, mode: 'insensitive' } },
+        { rideRequestId: { contains: search, mode: 'insensitive' } },
         { amount: { equals: parseFloat(search) || undefined } },
         { order: { orderNumber: { contains: search, mode: 'insensitive' } } },
+        { rideRequest: { requestId: { contains: search, mode: 'insensitive' } } },
       ];
     }
 
@@ -366,6 +378,7 @@ router.get('/snap-fees/export', authenticate, async (req: any, res) => {
     const transactions = await prisma.externalTransaction.findMany({
       where,
       include: {
+        rideRequest: true,
         order: true,
         customer: true,
         seller: true,
@@ -398,6 +411,7 @@ router.get('/snap-fees/:id', authenticate, async (req: any, res) => {
     const transaction = await prisma.externalTransaction.findUnique({
       where: { id },
       include: {
+        rideRequest: true,
         order: true,
         customer: true,
         seller: true,
@@ -469,8 +483,10 @@ router.get('/audit', authenticate, async (req: any, res) => {
       where.OR = [
         { appTransactionId: { contains: search, mode: 'insensitive' } },
         { orderId: { contains: search, mode: 'insensitive' } },
+        { rideRequestId: { contains: search, mode: 'insensitive' } },
         { amount: { equals: parseFloat(search) || undefined } },
         { order: { orderNumber: { contains: search, mode: 'insensitive' } } },
+        { rideRequest: { requestId: { contains: search, mode: 'insensitive' } } },
       ];
     }
 
@@ -500,6 +516,7 @@ router.get('/audit', authenticate, async (req: any, res) => {
     const transactions = await prisma.externalTransaction.findMany({
       where,
       include: {
+        rideRequest: true,
         order: true,
         customer: true,
         seller: true,
@@ -561,8 +578,10 @@ router.get('/audit/export', authenticate, async (req: any, res) => {
       where.OR = [
         { appTransactionId: { contains: search, mode: 'insensitive' } },
         { orderId: { contains: search, mode: 'insensitive' } },
+        { rideRequestId: { contains: search, mode: 'insensitive' } },
         { amount: { equals: parseFloat(search) || undefined } },
         { order: { orderNumber: { contains: search, mode: 'insensitive' } } },
+        { rideRequest: { requestId: { contains: search, mode: 'insensitive' } } },
       ];
     }
 
@@ -588,6 +607,7 @@ router.get('/audit/export', authenticate, async (req: any, res) => {
     const transactions = await prisma.externalTransaction.findMany({
       where,
       include: {
+        rideRequest: true,
         order: true,
         customer: true,
         seller: true,
@@ -620,6 +640,7 @@ router.get('/audit/:id', authenticate, async (req: any, res) => {
     const transaction = await prisma.externalTransaction.findUnique({
       where: { id },
       include: {
+        rideRequest: true,
         order: true,
         customer: true,
         seller: true,

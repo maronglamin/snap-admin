@@ -9,8 +9,8 @@ if ! command -v node &> /dev/null; then
 fi
 
 # Check if PostgreSQL is running (basic check)
-if ! pg_isready -h localhost -p 5432 &> /dev/null; then
-    echo "⚠️  PostgreSQL doesn't seem to be running on localhost:5432"
+if ! pg_isready -h snap-admin.cloudnexus.biz -p 5432 &> /dev/null; then
+    echo "⚠️  PostgreSQL doesn't seem to be running on snap-admin.cloudnexus.biz:5432"
     echo "Please make sure PostgreSQL is running and accessible"
 fi
 
@@ -23,7 +23,7 @@ if [ ! -f .env ]; then
     echo "📝 Creating .env file..."
     cat > .env << EOF
 # Database Configuration
-DATABASE_URL="postgresql://snap_user:snap_password@localhost:5432/snap_admin_db?schema=public"
+DATABASE_URL="postgresql://snap_user:snap_password@snap-admin.cloudnexus.biz:5432/snap_admin_db?schema=public"
 
 # Server Configuration
 PORT=3001
@@ -34,7 +34,7 @@ JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 JWT_EXPIRES_IN=24h
 
 # CORS Configuration
-CORS_ORIGIN=http://localhost:3000
+CORS_ORIGIN=http://snap-admin.cloudnexus.biz:3001
 
 # Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000

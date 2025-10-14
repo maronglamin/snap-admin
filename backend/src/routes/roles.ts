@@ -1,10 +1,14 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, EntityType as PrismaEntityType, Permission as PrismaPermission } from '@prisma/client';
 import { authenticate } from '../middleware/auth';
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+// Build allow-lists from Prisma enums to validate incoming values
+const ALLOWED_ENTITY_TYPES = new Set(Object.values(PrismaEntityType));
+const ALLOWED_PERMISSIONS = new Set(Object.values(PrismaPermission));
 
 // @route   GET /api/roles
 // @desc    Get all roles with their permissions
@@ -113,11 +117,25 @@ router.post('/', [
     // Create permissions for the role
     const permissionData = [];
     for (const [entityType, entityPermissions] of Object.entries(permissions)) {
+      if (!ALLOWED_ENTITY_TYPES.has(entityType as PrismaEntityType)) {
+        return res.status(400).json({
+          success: false,
+          error: `Invalid entityType: ${entityType}. Ensure your database enum is up-to-date.`,
+        });
+      }
+
       for (const [permission, isGranted] of Object.entries(entityPermissions as any)) {
+        if (!ALLOWED_PERMISSIONS.has(permission as PrismaPermission)) {
+          return res.status(400).json({
+            success: false,
+            error: `Invalid permission: ${permission} for entityType ${entityType}.`,
+          });
+        }
+
         permissionData.push({
           roleId: role.id,
-          entityType: entityType as any,
-          permission: permission as any,
+          entityType: entityType as PrismaEntityType,
+          permission: permission as PrismaPermission,
           isGranted: Boolean(isGranted),
         });
       }
@@ -231,11 +249,25 @@ router.put('/:id', [
     // Create new permissions
     const permissionData = [];
     for (const [entityType, entityPermissions] of Object.entries(permissions)) {
+      if (!ALLOWED_ENTITY_TYPES.has(entityType as PrismaEntityType)) {
+        return res.status(400).json({
+          success: false,
+          error: `Invalid entityType: ${entityType}. Ensure your database enum is up-to-date.`,
+        });
+      }
+
       for (const [permission, isGranted] of Object.entries(entityPermissions as any)) {
+        if (!ALLOWED_PERMISSIONS.has(permission as PrismaPermission)) {
+          return res.status(400).json({
+            success: false,
+            error: `Invalid permission: ${permission} for entityType ${entityType}.`,
+          });
+        }
+
         permissionData.push({
           roleId: id,
-          entityType: entityType as any,
-          permission: permission as any,
+          entityType: entityType as PrismaEntityType,
+          permission: permission as PrismaPermission,
           isGranted: Boolean(isGranted),
         });
       }
@@ -375,6 +407,9 @@ router.get('/available-permissions', authenticate, async (req: any, res) => {
       { value: 'SETTLEMENTS', label: 'Settlements', type: 'main' },
       { value: 'JOURNALS', label: 'Journals', type: 'main' },
       { value: 'SYSTEM_CONFIG', label: 'System Configuration', type: 'main' },
+      { value: 'SNAP_RIDE', label: 'SNAP Ride', type: 'main' },
+      { value: 'SNAP_RENTAL', label: 'SNAP Rental', type: 'main' },
+      { value: 'ECOMMERCE', label: 'E-commerce', type: 'main' },
       
       // Users submenus
       { value: 'USERS_SNAP_USERS', label: 'SNAP Users', type: 'submenu', parent: 'USERS' },
@@ -393,12 +428,36 @@ router.get('/available-permissions', authenticate, async (req: any, res) => {
       { value: 'JOURNALS_SNAP_FEE_REPORT', label: 'Snap Fee Report', type: 'submenu', parent: 'JOURNALS' },
       { value: 'JOURNALS_AUDIT_REPORT', label: 'Transaction Logs', type: 'submenu', parent: 'JOURNALS' },
       
+      // Authentication
+      { value: 'AUTHENTICATION', label: 'Authentication', type: 'main' },
+      { value: 'AUTHENTICATION_DEVICE_AUTHENTICATION', label: 'Device Authentication', type: 'submenu', parent: 'AUTHENTICATION' },
+      
       // System Config submenus
       { value: 'SYSTEM_CONFIG_ROLES', label: 'Roles', type: 'submenu', parent: 'SYSTEM_CONFIG' },
       { value: 'SYSTEM_CONFIG_OPERATOR_ENTITY', label: 'User Container', type: 'submenu', parent: 'SYSTEM_CONFIG' },
       { value: 'SYSTEM_CONFIG_SYSTEM_OPERATOR', label: 'Admin Container', type: 'submenu', parent: 'SYSTEM_CONFIG' },
       { value: 'SYSTEM_CONFIG_SETTLEMENT_GROUP', label: 'Settlement Group', type: 'submenu', parent: 'SYSTEM_CONFIG' },
       { value: 'SYSTEM_CONFIG_PAYMENT_GATEWAYS', label: 'Payment Gateways', type: 'submenu', parent: 'SYSTEM_CONFIG' },
+      
+      // SNAP Ride submenus
+      { value: 'SNAP_RIDE_RIDER_APPLICATIONS', label: 'Ride Applications', type: 'submenu', parent: 'SNAP_RIDE' },
+      { value: 'SNAP_RIDE_DRIVER_MANAGEMENT', label: 'Driver Management', type: 'submenu', parent: 'SNAP_RIDE' },
+      { value: 'SNAP_RIDE_RIDE_MANAGEMENT', label: 'Ride Journal', type: 'submenu', parent: 'SNAP_RIDE' },
+      { value: 'SNAP_RIDE_ANALYTICS', label: 'Analytics', type: 'submenu', parent: 'SNAP_RIDE' },
+      { value: 'SNAP_RIDE_RIDE_SERVICE', label: 'Ride Service', type: 'submenu', parent: 'SNAP_RIDE' },
+      { value: 'SNAP_RIDE_RIDE_SERVICE_TIERS', label: 'Ride Service Tiers', type: 'submenu', parent: 'SNAP_RIDE' },
+      
+      // SNAP Rental submenus
+      { value: 'SNAP_RENTAL_REQUEST', label: 'Request', type: 'submenu', parent: 'SNAP_RENTAL' },
+      
+      // E-commerce submenus
+      { value: 'ECOMMERCE_SALES_OUTLETS', label: 'Sales Outlets', type: 'submenu', parent: 'ECOMMERCE' },
+      { value: 'ECOMMERCE_BRANCH_DETAILS', label: 'Branch Details', type: 'submenu', parent: 'ECOMMERCE' },
+      { value: 'ECOMMERCE_PRINCIPAL_BUSINESS', label: 'Principal Business', type: 'submenu', parent: 'ECOMMERCE' },
+      
+      // Analytics
+      { value: 'ANALYTICS', label: 'Analytics', type: 'main' },
+      { value: 'ANALYTICS_REVENUE', label: 'Revenue Analysis', type: 'submenu', parent: 'ANALYTICS' },
     ];
 
     const permissions = [

@@ -16,7 +16,7 @@ exports.config = {
         url: process.env.IMAGE_SERVER_URL || 'https://your-image-server.com',
     },
     cors: {
-        origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+        origin: process.env.CORS_ORIGIN || 'http://localhost:3001',
     },
 };
 exports.default = exports.config;

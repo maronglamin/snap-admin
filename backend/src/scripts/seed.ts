@@ -200,7 +200,6 @@ async function main() {
       username: 'admin',
       password: adminPassword,
       name: process.env.ADMIN_NAME || 'Admin User',
-      role: 'ADMIN',
       isActive: true,
       operatorEntityId: systemAdminEntity.id,
     },

@@ -59,6 +59,8 @@ router.get('/', auth_1.authenticate, async (req, res) => {
                         rejectionReason: true,
                         verifiedAt: true,
                         createdAt: true,
+                        statusChangedBy: true,
+                        statusChangedAt: true,
                         bankAccounts: {
                             select: {
                                 id: true,
@@ -83,31 +85,6 @@ router.get('/', auth_1.authenticate, async (req, res) => {
                 products: {
                     select: {
                         id: true,
-                        status: true,
-                    }
-                },
-                orders: {
-                    select: {
-                        id: true,
-                        status: true,
-                        totalAmount: true,
-                        currencyCode: true,
-                        createdAt: true,
-                    }
-                },
-                sellerOrders: {
-                    select: {
-                        id: true,
-                        status: true,
-                        totalAmount: true,
-                        currencyCode: true,
-                        createdAt: true,
-                    }
-                },
-                settlements: {
-                    select: {
-                        id: true,
-                        amount: true,
                         status: true,
                     }
                 },
@@ -157,41 +134,11 @@ router.get('/', auth_1.authenticate, async (req, res) => {
         const paginatedUsers = filteredTransformedUsers.slice(skip, skip + limitNum);
         const transformedUsers = paginatedUsers.map(({ user, type: userType, status: userStatus, kycStatus }) => {
             const totalProducts = user.products.filter(p => p.status === 'ACTIVE').length;
-            const totalOrders = user.orders.length;
-            const totalSettlements = user.settlements.filter(s => s.status === 'COMPLETED').length;
             let totalSales = 0;
             let totalSpent = 0;
             let latestCurrency = null;
             let allCurrencies = [];
             let currencyTotals = {};
-            if (userType === 'SELLER' && user.sellerOrders.length > 0) {
-                allCurrencies = [...new Set(user.sellerOrders.map(order => order.currencyCode))];
-                currencyTotals = user.sellerOrders.reduce((acc, order) => {
-                    const currency = order.currencyCode;
-                    if (!acc[currency]) {
-                        acc[currency] = 0;
-                    }
-                    acc[currency] += Number(order.totalAmount);
-                    return acc;
-                }, {});
-                const latestOrder = user.sellerOrders.reduce((latest, order) => new Date(order.createdAt) > new Date(latest.createdAt) ? order : latest);
-                latestCurrency = latestOrder.currencyCode;
-                totalSales = currencyTotals[latestCurrency] || 0;
-            }
-            if (userType === 'BUYER' && user.orders.length > 0) {
-                allCurrencies = [...new Set(user.orders.map(order => order.currencyCode))];
-                currencyTotals = user.orders.reduce((acc, order) => {
-                    const currency = order.currencyCode;
-                    if (!acc[currency]) {
-                        acc[currency] = 0;
-                    }
-                    acc[currency] += Number(order.totalAmount);
-                    return acc;
-                }, {});
-                const latestOrder = user.orders.reduce((latest, order) => new Date(order.createdAt) > new Date(latest.createdAt) ? order : latest);
-                latestCurrency = latestOrder.currencyCode;
-                totalSpent = currencyTotals[latestCurrency] || 0;
-            }
             if (!latestCurrency) {
                 latestCurrency = 'GMD';
                 currencyTotals = { GMD: 0 };
@@ -207,10 +154,10 @@ router.get('/', auth_1.authenticate, async (req, res) => {
                 joinDate: user.createdAt,
                 lastActive: user.updatedAt,
                 totalProducts,
-                totalOrders,
+                totalOrders: 0,
                 totalSales,
                 totalSpent,
-                totalSettlements,
+                totalSettlements: 0,
                 latestCurrency,
                 allCurrencies,
                 currencyTotals,
@@ -237,6 +184,8 @@ router.get('/', auth_1.authenticate, async (req, res) => {
                     rejectionReason: user.sellerKyc.rejectionReason,
                     verifiedAt: user.sellerKyc.verifiedAt,
                     createdAt: user.sellerKyc.createdAt,
+                    statusChangedBy: user.sellerKyc.statusChangedBy,
+                    statusChangedAt: user.sellerKyc.statusChangedAt,
                     bankAccounts: user.sellerKyc.bankAccounts,
                     wallets: user.sellerKyc.wallets,
                 } : null,
@@ -280,25 +229,30 @@ router.get('/:id', auth_1.authenticate, async (req, res) => {
                         id: true,
                         title: true,
                         price: true,
+                        currencyCode: true,
                         status: true,
                         createdAt: true,
                     }
                 },
-                orders: {
+                orders_orders_userIdToUser: {
                     select: {
                         id: true,
                         orderNumber: true,
                         totalAmount: true,
+                        currencyCode: true,
                         status: true,
+                        paymentStatus: true,
                         createdAt: true,
                     }
                 },
-                sellerOrders: {
+                orders_orders_sellerIdToUser: {
                     select: {
                         id: true,
                         orderNumber: true,
                         totalAmount: true,
+                        currencyCode: true,
                         status: true,
+                        paymentStatus: true,
                         createdAt: true,
                     }
                 },
@@ -362,8 +316,8 @@ router.get('/:id', auth_1.authenticate, async (req, res) => {
             businessName: user.sellerKyc?.businessName || null,
             businessType: user.sellerKyc?.businessType || null,
             products: user.products,
-            orders: user.orders,
-            sellerOrders: user.sellerOrders,
+            orders: user.orders_orders_userIdToUser,
+            sellerOrders: user.orders_orders_sellerIdToUser,
             settlements: user.settlements,
             deliveryAddresses: user.deliveryAddresses,
             kycDetails: user.sellerKyc ? {
@@ -385,6 +339,8 @@ router.get('/:id', auth_1.authenticate, async (req, res) => {
                 rejectionReason: user.sellerKyc.rejectionReason,
                 verifiedAt: user.sellerKyc.verifiedAt,
                 createdAt: user.sellerKyc.createdAt,
+                statusChangedBy: user.sellerKyc.statusChangedBy,
+                statusChangedAt: user.sellerKyc.statusChangedAt,
                 bankAccounts: user.sellerKyc.bankAccounts,
                 wallets: user.sellerKyc.wallets,
             } : null,
@@ -406,7 +362,6 @@ router.put('/:id/kyc', auth_1.authenticate, async (req, res) => {
     try {
         const { id } = req.params;
         const { status, rejectionReason } = req.body;
-        console.log('KYC Update Request:', { id, status, rejectionReason });
         const validStatuses = ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'];
         if (!validStatuses.includes(status)) {
             return res.status(400).json({
@@ -435,6 +390,8 @@ router.put('/:id/kyc', auth_1.authenticate, async (req, res) => {
         const updateData = {
             status,
             updatedAt: new Date(),
+            statusChangedBy: req.user.username,
+            statusChangedAt: new Date(),
         };
         if (status === 'APPROVED') {
             updateData.verifiedAt = new Date();
@@ -452,12 +409,10 @@ router.put('/:id/kyc', auth_1.authenticate, async (req, res) => {
             updateData.rejectionReason = null;
             updateData.verifiedAt = null;
         }
-        console.log('Update Data:', updateData);
         const updatedKyc = await prisma.sellerKyc.update({
             where: { userId: id },
             data: updateData,
         });
-        console.log('Updated KYC:', updatedKyc);
         res.json({
             success: true,
             data: updatedKyc,
@@ -474,11 +429,19 @@ router.put('/:id/kyc', auth_1.authenticate, async (req, res) => {
 });
 router.get('/revenue/platform', auth_1.authenticate, async (req, res) => {
     try {
+        const now = new Date();
+        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        const currentMonthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
         const serviceFeeTransactions = await prisma.externalTransaction.findMany({
             where: {
                 transactionType: 'SERVICE_FEE',
                 currencyCode: 'GMD',
                 status: 'SUCCESS',
+                createdAt: {
+                    gte: currentMonthStart,
+                    lte: currentMonthEnd,
+                },
             },
             select: {
                 amount: true,
@@ -504,6 +467,7 @@ router.get('/revenue/platform', auth_1.authenticate, async (req, res) => {
                 serviceFeeRate: serviceFeeRate?.value || 0.05,
                 transactionCount: serviceFeeTransactions.length,
                 currency: 'GMD',
+                currentMonth: currentMonthName,
             },
         });
     }
