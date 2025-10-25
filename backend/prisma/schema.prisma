@@ -1,0 +1,1490 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id               String         @id @default(cuid())
+  email            String         @unique
+  password         String
+  name             String
+  username         String         @unique
+  isActive         Boolean        @default(true)
+  lastLogin        DateTime?
+  mfaEnabled       Boolean        @default(false)
+  mfaSecret        String?
+  mfaVerified      Boolean        @default(false)
+  mfaBackupCodes   String[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  operatorEntityId String
+  createdBy        String?
+  operatorEntity   OperatorEntity @relation(fields: [operatorEntityId], references: [id])
+
+  @@map("admins")
+}
+
+model Role {
+  id               String           @id @default(cuid())
+  name             String           @unique
+  description      String?
+  isActive         Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  createdBy        String?
+  operatorEntities OperatorEntity[]
+  permissions      RolePermission[]
+
+  @@map("roles")
+}
+
+model RolePermission {
+  id         String     @id @default(cuid())
+  roleId     String
+  entityType EntityType
+  permission Permission
+  isGranted  Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, entityType, permission])
+  @@map("role_permissions")
+}
+
+model OperatorEntity {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  roleId      String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?
+  admins      Admin[]
+  role        Role     @relation(fields: [roleId], references: [id])
+
+  @@map("operator_entities")
+}
+
+model User {
+  id                           String                 @id @default(uuid())
+  firstName                    String
+  middleName                   String?
+  lastName                     String
+  phoneNumber                  String                 @unique
+  pin                          String
+  createdAt                    DateTime               @default(now())
+  updatedAt                    DateTime               @updatedAt
+  deliveryAddresses            DeliveryAddress[]
+  devices                      Device[]
+  customerTransactions         ExternalTransaction[]  @relation("CustomerTransactions")
+  sellerTransactions           ExternalTransaction[]  @relation("SellerTransactions")
+  paymentMethods               PaymentMethod[]
+  products                     Product[]
+  sellerKyc                    SellerKyc?
+  sessions                     Session[]
+  settlements                  Settlement[]
+  driver                       Driver?
+  orders_orders_sellerIdToUser orders[]               @relation("orders_sellerIdToUser")
+  orders_orders_userIdToUser   orders[]               @relation("orders_userIdToUser")
+  productOrderInterests        ProductOrderInterest[]
+  productViews                 ProductView[]
+  rentalMessages               RentalMessage[]
+  customerRentalRequests       RentalRequest[]
+  customerRideRequests         RideRequest[]          @relation("CustomerRideRequests")
+  riderApplications            RiderApplication[]
+  customerRides                Ride[]                 @relation("CustomerRides")
+  twilioNotifications          TwilioNotification[]
+  salesReps                    SalesRep[]             @relation("ParentSeller")
+  parentSellerSettlements      SalesRepSettlement[]   @relation("ParentSellerSettlements")
+  salesRepProfile              SalesRep?              @relation("SalesRepUser")
+  branches                     Branch[]               @relation("ParentSellerBranches")
+
+  @@index([phoneNumber])
+  @@index([createdAt])
+  @@index([updatedAt])
+}
+
+model DeliveryAddress {
+  id         String   @id @default(uuid())
+  userId     String
+  address    String
+  city       String
+  state      String
+  postalCode String?
+  country    String
+  isDefault  Boolean  @default(false)
+  label      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  isDeleted  Boolean  @default(false)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isDefault])
+  @@index([isDeleted])
+  @@index([createdAt])
+  @@index([updatedAt])
+}
+
+model PaymentGatewayServiceProvider {
+  id           String   @id @default(uuid())
+  name         String
+  type         String
+  countryCode  String   @db.VarChar(2)
+  currencyCode String   @db.VarChar(3)
+  isActive     Boolean  @default(true)
+  logoUrl      String?
+  description  String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdBy    String?
+
+  @@unique([name, countryCode])
+  @@index([countryCode])
+  @@index([currencyCode])
+  @@index([type])
+  @@index([isActive])
+  @@index([createdAt])
+  @@index([updatedAt])
+}
+
+model Device {
+  id                  String               @id @default(uuid())
+  deviceId            String
+  deviceName          String
+  deviceType          String
+  isVerified          Boolean              @default(false)
+  lastLoginAt         DateTime             @default(now())
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  userId              String
+  brand               String
+  modelName           String
+  osVersion           String
+  phoneNumber         String
+  lastLogoutAt        DateTime?
+  user                User                 @relation(fields: [userId], references: [id])
+  sessions            Session[]
+  twilioNotifications TwilioNotification[]
+
+  @@unique([userId, deviceId])
+  @@index([userId])
+  @@index([deviceId])
+  @@index([phoneNumber])
+  @@index([isVerified])
+  @@index([lastLoginAt])
+  @@index([lastLogoutAt])
+  @@index([createdAt])
+  @@index([updatedAt])
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  deviceId  String
+  device    Device   @relation(fields: [deviceId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([deviceId])
+  @@index([token])
+  @@index([expiresAt])
+  @@index([createdAt])
+  @@index([updatedAt])
+}
+
+model OTP {
+  id           String   @id @default(uuid())
+  phoneNumber  String
+  code         String
+  type         String
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  isUsed       Boolean  @default(false)
+  attempts     Int      @default(0)
+  originalCode String?
+
+  @@index([phoneNumber])
+  @@index([code])
+  @@index([type])
+  @@index([expiresAt])
+  @@index([isUsed])
+  @@index([createdAt])
+}
+
+model Product {
+  id                    String                  @id @default(uuid())
+  sellerId              String
+  title                 String
+  description           String?
+  price                 Decimal                 @db.Decimal(10, 2)
+  currencyCode          String                  @db.VarChar(3)
+  quantity              Int
+  categoryId            String?
+  condition             ProductCondition
+  locationId            String
+  status                ProductStatus
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  deletedAt             DateTime?
+  views                 Int                     @default(0)
+  favorites             Int                     @default(0)
+  rating                Decimal?                @db.Decimal(3, 2)
+  ratingCount           Int                     @default(0)
+  isFeatured            Boolean                 @default(true)
+  featuredUntil         DateTime?
+  metadata              Json?
+  category              Category?               @relation(fields: [categoryId], references: [id])
+  location              Location                @relation(fields: [locationId], references: [id])
+  seller                User                    @relation(fields: [sellerId], references: [id])
+  attributes            ProductAttribute[]
+  deliveryOptions       ProductDeliveryOption[]
+  images                ProductImage[]
+  translations          ProductTranslation[]
+  orderItems            OrderItem[]
+  productOrderInterests ProductOrderInterest[]
+  productViews          ProductView[]
+  salesRep              SalesRep?              @relation("SalesRepProducts", fields: [salesRepId], references: [id])
+  salesRepId            String?
+  branch                Branch?                @relation("BranchProducts", fields: [branchId], references: [id])
+  branchId              String?
+
+  @@index([sellerId])
+  @@index([categoryId])
+  @@index([locationId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([isFeatured])
+  @@index([rating])
+  @@index([salesRepId])
+  @@index([branchId])
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  productId String
+  imageUrl  String
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  width     Int?
+  height    Int?
+  size      Int?
+  format    String?
+  altText   String?
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model Category {
+  id           String                @id @default(uuid())
+  name         String
+  parentId     String?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  slug         String                @unique
+  description  String?
+  imageUrl     String?
+  order        Int                   @default(0)
+  isActive     Boolean               @default(true)
+  metadata     Json?
+  createdBy    String?
+  parent       Category?             @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children     Category[]            @relation("CategoryHierarchy")
+  translations CategoryTranslation[]
+  products     Product[]
+
+  @@index([parentId])
+  @@index([slug])
+  @@index([isActive])
+}
+
+model Location {
+  id          String    @id @default(uuid())
+  countryCode String    @db.VarChar(2)
+  region      String
+  city        String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  latitude    Float?
+  longitude   Float?
+  timezone    String?
+  isActive    Boolean   @default(true)
+  products    Product[]
+
+  @@index([countryCode])
+  @@index([isActive])
+  @@index([latitude, longitude])
+}
+
+model ProductAttribute {
+  id           String   @id @default(uuid())
+  productId    String
+  key          String
+  value        String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  unit         String?
+  isFilterable Boolean  @default(false)
+  order        Int      @default(0)
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([key])
+  @@index([isFilterable])
+}
+
+model ProductTranslation {
+  id          String   @id @default(uuid())
+  productId   String
+  locale      String   @db.VarChar(5)
+  title       String
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, locale])
+  @@index([locale])
+}
+
+model ProductDeliveryOption {
+  id            String       @id @default(uuid())
+  productId     String
+  deliveryType  DeliveryType
+  name          String
+  description   String?
+  price         Decimal      @db.Decimal(10, 2)
+  currencyCode  String       @db.VarChar(3)
+  estimatedDays Int
+  isDefault     Boolean      @default(false)
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  product       Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([deliveryType])
+  @@index([isActive])
+  @@index([isDefault])
+}
+
+model CategoryTranslation {
+  id          String   @id @default(uuid())
+  categoryId  String
+  locale      String   @db.VarChar(5)
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, locale])
+  @@index([locale])
+}
+
+model SellerKyc {
+  id                 String        @id @default(uuid())
+  userId             String        @unique
+  businessName       String
+  businessType       BusinessType
+  registrationNumber String?
+  taxId              String?
+  address            String
+  city               String
+  state              String
+  postalCode         String
+  documentType       DocumentType
+  documentNumber     String
+  documentUrl        String
+  status             KycStatus     @default(PENDING)
+  rejectionReason    String?
+  verifiedAt         DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  country            String[]
+  documentExpiryDate DateTime?
+  statusChangedBy    String?
+  statusChangedAt    DateTime?
+  bankAccounts       BankAccount[]
+  user               User          @relation(fields: [userId], references: [id])
+  wallets            Wallet[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([documentNumber])
+  @@index([businessName])
+}
+
+model BankAccount {
+  id            String        @id @default(uuid())
+  sellerKycId   String
+  accountName   String
+  accountNumber String
+  bankName      String
+  bankCode      String
+  branchCode    String?
+  swiftCode     String?
+  iban          String?
+  currency      String        @db.VarChar(3)
+  isDefault     Boolean       @default(false)
+  status        AccountStatus @default(ACTIVE)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  sellerKyc     SellerKyc     @relation(fields: [sellerKycId], references: [id])
+  settlements   Settlement[]
+
+  @@index([sellerKycId])
+  @@index([accountNumber])
+  @@index([status])
+}
+
+model Wallet {
+  id            String        @id @default(uuid())
+  sellerKycId   String
+  walletType    WalletType
+  walletAddress String
+  currency      String        @db.VarChar(3)
+  isDefault     Boolean       @default(false)
+  status        AccountStatus @default(ACTIVE)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  account       String
+  settlements   Settlement[]
+  sellerKyc     SellerKyc     @relation(fields: [sellerKycId], references: [id])
+
+  @@index([sellerKycId])
+  @@index([walletAddress])
+  @@index([account])
+  @@index([status])
+}
+
+model PaymentMethod {
+  id                   String                @id @default(uuid())
+  userId               String
+  type                 PaymentType
+  provider             String
+  accountId            String
+  accountName          String
+  isDefault            Boolean               @default(false)
+  status               AccountStatus         @default(ACTIVE)
+  metadata             Json?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  externalTransactions ExternalTransaction[]
+  user                 User                  @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+}
+
+model Settlement {
+  id                  String            @id @default(uuid())
+  userId              String
+  amount              Decimal           @db.Decimal(10, 2)
+  currency            String            @db.VarChar(3)
+  status              SettlementStatus  @default(PENDING)
+  type                SettlementType
+  reference           String            @unique
+  bankAccountId       String?
+  walletId            String?
+  metadata            Json?
+  processedAt         DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  includedOrderIds    Json?
+  netAmountBeforeFees Decimal           @default(0) @db.Decimal(10, 2)
+  serviceFeesDeducted Decimal           @default(0) @db.Decimal(10, 2)
+  totalOrdersCount    Int               @default(0)
+  channel             SettlementChannel @default(ECOMMERCE)
+  includedRideIds     Json?
+  totalRidesCount     Int               @default(0)
+  bankAccount         BankAccount?      @relation(fields: [bankAccountId], references: [id])
+  user                User              @relation(fields: [userId], references: [id])
+  wallet              Wallet?           @relation(fields: [walletId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([reference])
+  @@index([createdAt])
+  @@index([currency])
+  @@index([channel])
+}
+
+model ProductView {
+  id        String   @id @default(cuid())
+  productId String
+  userId    String
+  deviceId  String?
+  ipAddress String?
+  viewedAt  DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, userId, deviceId])
+  @@index([productId])
+  @@index([userId])
+  @@index([viewedAt])
+  @@map("product_views")
+}
+
+model ProductOrderInterest {
+  id                    String              @id @default(uuid())
+  productId             String
+  userId                String
+  quantity              Int                 @default(1)
+  originalPrice         Decimal             @db.Decimal(10, 2)
+  discountPrice         Decimal?            @db.Decimal(10, 2)
+  currencyCode          String              @db.VarChar(3)
+  totalAmount           Decimal             @db.Decimal(10, 2)
+  status                OrderInterestStatus @default(PENDING)
+  notes                 String?
+  preferredDeliveryDate DateTime?
+  deliveryAddress       String?
+  contactPhone          String?
+  paymentMethod         String?
+  paymentStatus         PaymentStatus       @default(PENDING)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  expiresAt             DateTime?
+  product               Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([userId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
+  @@index([expiresAt])
+  @@map("product_order_interests")
+}
+
+model OrderItem {
+  id              String          @id @default(uuid())
+  orderId         String
+  productId       String
+  productSnapshot Json
+  quantity        Int
+  unitPrice       Decimal         @db.Decimal(10, 2)
+  totalPrice      Decimal         @db.Decimal(10, 2)
+  status          OrderItemStatus @default(PENDING)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  order           orders          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product         Product         @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([status])
+  @@map("order_items")
+}
+
+model ExternalTransaction {
+  id                   String            @id @default(uuid())
+  orderId              String?
+  customerId           String
+  sellerId             String
+  paymentMethodId      String?
+  gatewayProvider      String
+  gatewayTransactionId String?
+  paymentReference     String?
+  amount               Decimal           @db.Decimal(10, 2)
+  currencyCode         String            @db.VarChar(3)
+  gatewayChargeFees    Decimal?          @db.Decimal(10, 2)
+  paidThroughGateway   Boolean           @default(false)
+  gatewayResponse      Json?
+  gatewayRequest       Json?
+  status               TransactionStatus
+  failureReason        String?
+  processedAt          DateTime?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  appTransactionId     String
+  processedAmount      Decimal?          @db.Decimal(10, 2)
+  transactionType      TransactionType   @default(ORIGINAL)
+  appService           AppService        @default(ECOMMERCE)
+  rideRequestId        String?
+  rentalRequestId      String?
+  customer             User              @relation("CustomerTransactions", fields: [customerId], references: [id])
+  order                orders?           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  paymentMethod        PaymentMethod?    @relation(fields: [paymentMethodId], references: [id])
+  rentalRequest        RentalRequest?    @relation(fields: [rentalRequestId], references: [id], onDelete: Cascade)
+  rideRequest          RideRequest?      @relation(fields: [rideRequestId], references: [id], onDelete: Cascade)
+  seller               User              @relation("SellerTransactions", fields: [sellerId], references: [id])
+
+  @@index([orderId])
+  @@index([rideRequestId])
+  @@index([rentalRequestId])
+  @@index([customerId])
+  @@index([sellerId])
+  @@index([paymentMethodId])
+  @@index([gatewayProvider])
+  @@index([gatewayTransactionId])
+  @@index([paymentReference])
+  @@index([appTransactionId])
+  @@index([appService])
+  @@index([transactionType])
+  @@index([status])
+  @@index([processedAt])
+  @@index([createdAt])
+  @@index([updatedAt])
+}
+
+model UCP {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  value       Decimal  @db.Decimal(10, 4)
+  description String?
+  serviceType String?
+  isActive    Boolean  @default(true)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?
+
+  @@index([name])
+  @@index([serviceType])
+  @@index([isActive])
+  @@index([createdAt])
+  @@index([updatedAt])
+}
+
+model RiderApplication {
+  id               String                 @id @default(uuid())
+  userId           String
+  vehicleType      RiderVehicleType
+  firstName        String
+  lastName         String
+  email            String?
+  phoneNumber      String
+  dateOfBirth      String?
+  address          String
+  city             String
+  licenseNumber    String
+  licenseExpiry    String
+  vehicleModel     String
+  vehiclePlate     String
+  insuranceNumber  String?
+  insuranceExpiry  String?
+  emergencyContact String?
+  emergencyPhone   String?
+  experience       String?
+  availability     String?
+  status           RiderApplicationStatus @default(PENDING)
+  rejectionReason  String?
+  reviewedBy       String?
+  reviewedAt       DateTime?
+  approvedAt       DateTime?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  driver           Driver?
+  rentalRequests   RentalRequest[]
+  user             User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents        RiderDocument[]
+
+  @@index([userId])
+  @@index([vehicleType])
+  @@index([status])
+  @@index([licenseNumber])
+  @@index([vehiclePlate])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@map("rider_applications")
+}
+
+model RiderDocument {
+  id                 String           @id @default(uuid())
+  riderApplicationId String
+  documentType       String
+  fileName           String
+  fileUrl            String
+  fileSize           Int?
+  mimeType           String?
+  uploadedAt         DateTime         @default(now())
+  riderApplication   RiderApplication @relation(fields: [riderApplicationId], references: [id], onDelete: Cascade)
+
+  @@index([riderApplicationId])
+  @@index([documentType])
+  @@index([uploadedAt])
+  @@map("rider_documents")
+}
+
+model RentalRequest {
+  id                 String                @id @default(uuid())
+  requestId          String                @unique
+  customerId         String
+  driverId           String?
+  riderApplicationId String?
+  rideServiceId      String
+  status             RentalRequestStatus   @default(PENDING_QUOTE)
+  pickupAddress      String
+  pickupLocation     Json?
+  pickupLatitude     Float?
+  pickupLongitude    Float?
+  startDate          DateTime
+  endDate            DateTime
+  days               Int
+  proposedPrice      Decimal?              @db.Decimal(10, 2)
+  agreedPrice        Decimal?              @db.Decimal(10, 2)
+  currency           String                @default("GMD")
+  notes              String?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  chatMeta           Json?
+  transactions       ExternalTransaction[]
+  messages           RentalMessage[]
+  customer           User                  @relation(fields: [customerId], references: [id])
+  driver             Driver?               @relation(fields: [driverId], references: [id])
+  rideService        RideService           @relation(fields: [rideServiceId], references: [id])
+  riderApplication   RiderApplication?     @relation(fields: [riderApplicationId], references: [id])
+
+  @@index([customerId])
+  @@index([driverId])
+  @@index([rideServiceId])
+  @@index([createdAt])
+  @@map("rental_requests")
+}
+
+model RentalMessage {
+  id         String        @id @default(uuid())
+  rentalId   String
+  senderId   String
+  senderType SenderType
+  content    String
+  isRead     Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  rental     RentalRequest @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  sender     User          @relation(fields: [senderId], references: [id])
+
+  @@index([rentalId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@map("rental_messages")
+}
+
+model Driver {
+  id                 String           @id @default(uuid())
+  userId             String           @unique
+  riderApplicationId String           @unique
+  driverId           String           @unique
+  isOnline           Boolean          @default(false)
+  status             DriverStatus     @default(OFFLINE)
+  currentLocation    Json?
+  lastLocationUpdate DateTime?
+  totalRides         Int              @default(0)
+  totalEarnings      Decimal          @default(0) @db.Decimal(10, 2)
+  rating             Decimal?         @db.Decimal(3, 2)
+  ratingCount        Int              @default(0)
+  vehicleInfo        Json?
+  documents          Json?
+  preferences        Json?
+  isVerified         Boolean          @default(false)
+  isActive           Boolean          @default(true)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  rideServiceId      String?
+  updatedBy          String?
+  isRentalType       Boolean          @default(false)
+  earnings           DriverEarning[]
+  locationHistory    DriverLocation[]
+  rideService        RideService?     @relation(fields: [rideServiceId], references: [id])
+  riderApplication   RiderApplication @relation(fields: [riderApplicationId], references: [id])
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rentalRequests     RentalRequest[]
+  rideRequests       RideRequest[]
+  rides              Ride[]
+
+  @@index([userId])
+  @@index([driverId])
+  @@index([rideServiceId])
+  @@index([isOnline])
+  @@index([status])
+  @@index([isActive])
+  @@index([isRentalType])
+  @@index([createdAt])
+  @@index([updatedBy])
+  @@map("drivers")
+}
+
+model DriverLocation {
+  id        String   @id @default(uuid())
+  driverId  String
+  latitude  Float
+  longitude Float
+  address   String?
+  accuracy  Float?
+  speed     Float?
+  heading   Float?
+  timestamp DateTime @default(now())
+  driver    Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([driverId])
+  @@index([timestamp])
+  @@map("driver_locations")
+}
+
+model RideRequest {
+  id                   String                @id @default(uuid())
+  requestId            String                @unique
+  customerId           String
+  driverId             String?
+  pickupLocation       Json
+  destinationLocation  Json
+  rideType             RideType              @default(STANDARD)
+  estimatedDistance    Float?
+  estimatedDuration    Int?
+  estimatedPrice       Decimal               @db.Decimal(10, 2)
+  actualPrice          Decimal?              @db.Decimal(10, 2)
+  status               RideStatus            @default(REQUESTED)
+  paymentMethod        RidePaymentMethod     @default(CASH)
+  customerNotes        String?
+  driverNotes          String?
+  requestedAt          DateTime              @default(now())
+  acceptedAt           DateTime?
+  startedAt            DateTime?
+  completedAt          DateTime?
+  cancelledAt          DateTime?
+  cancelledBy          String?
+  cancellationReason   String?
+  expiresAt            DateTime
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  rideServiceId        String?
+  currency             String                @default("GMD")
+  currencySymbol       String                @default("D")
+  externalTransactions ExternalTransaction[]
+  customer             User                  @relation("CustomerRideRequests", fields: [customerId], references: [id])
+  driver               Driver?               @relation(fields: [driverId], references: [id])
+  rideService          RideService?          @relation(fields: [rideServiceId], references: [id])
+  ride                 Ride?
+
+  @@index([customerId])
+  @@index([driverId])
+  @@index([status])
+  @@index([requestedAt])
+  @@index([expiresAt])
+  @@map("ride_requests")
+}
+
+model Ride {
+  id                    String            @id @default(uuid())
+  rideId                String            @unique
+  rideRequestId         String            @unique
+  driverId              String
+  customerId            String
+  pickupLocation        Json
+  destinationLocation   Json
+  actualPickupLocation  Json?
+  actualDropoffLocation Json?
+  rideType              RideType          @default(STANDARD)
+  distance              Float?
+  duration              Int?
+  baseFare              Decimal           @db.Decimal(10, 2)
+  distanceFare          Decimal           @db.Decimal(10, 2)
+  timeFare              Decimal           @db.Decimal(10, 2)
+  surgeFare             Decimal           @default(0) @db.Decimal(10, 2)
+  totalFare             Decimal           @db.Decimal(10, 2)
+  driverEarnings        Decimal           @db.Decimal(10, 2)
+  platformFee           Decimal           @db.Decimal(10, 2)
+  paymentMethod         RidePaymentMethod @default(CASH)
+  paymentStatus         PaymentStatus     @default(PENDING)
+  status                RideStatus        @default(REQUESTED)
+  customerRating        Int?
+  driverRating          Int?
+  customerReview        String?
+  driverReview          String?
+  startedAt             DateTime?
+  completedAt           DateTime?
+  cancelledAt           DateTime?
+  cancelledBy           String?
+  cancellationReason    String?
+  route                 Json?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  rideServiceId         String?
+  settlementStatus      PaymentStatus     @default(PENDING)
+  locationUpdates       RideLocation[]
+  rideToken             RideToken?
+  customer              User              @relation("CustomerRides", fields: [customerId], references: [id])
+  driver                Driver            @relation(fields: [driverId], references: [id])
+  rideRequest           RideRequest       @relation(fields: [rideRequestId], references: [id])
+  rideService           RideService?      @relation(fields: [rideServiceId], references: [id])
+
+  @@index([rideId])
+  @@index([driverId])
+  @@index([customerId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([settlementStatus])
+  @@index([startedAt])
+  @@index([completedAt])
+  @@map("rides")
+}
+
+model RideToken {
+  id        String    @id @default(uuid())
+  rideId    String    @unique
+  token     String    @unique
+  isUsed    Boolean   @default(false)
+  usedAt    DateTime?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  ride      Ride      @relation(fields: [rideId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([isUsed])
+  @@index([expiresAt])
+  @@map("ride_tokens")
+}
+
+model RideLocation {
+  id        String   @id @default(uuid())
+  rideId    String
+  latitude  Float
+  longitude Float
+  accuracy  Float?
+  speed     Float?
+  heading   Float?
+  timestamp DateTime @default(now())
+  ride      Ride     @relation(fields: [rideId], references: [id], onDelete: Cascade)
+
+  @@index([rideId])
+  @@index([timestamp])
+  @@map("ride_locations")
+}
+
+model DriverEarning {
+  id          String    @id @default(uuid())
+  driverId    String
+  rideId      String
+  amount      Decimal   @db.Decimal(10, 2)
+  type        String
+  description String?
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+  driver      Driver    @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([driverId])
+  @@index([rideId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("driver_earnings")
+}
+
+model RideService {
+  id                       String           @id @default(uuid())
+  serviceId                String           @unique
+  name                     String
+  description              String?
+  vehicleType              RiderVehicleType
+  isActive                 Boolean          @default(true)
+  isDefault                Boolean          @default(false)
+  distanceUnit             DistanceUnit     @default(KILOMETER)
+  baseDistance             Float            @default(1.0)
+  maxDistance              Float?
+  baseFare                 Decimal          @db.Decimal(10, 2)
+  perKmRate                Decimal          @db.Decimal(10, 2)
+  perMinuteRate            Decimal          @db.Decimal(10, 2)
+  minimumFare              Decimal          @db.Decimal(10, 2)
+  maximumFare              Decimal?         @db.Decimal(10, 2)
+  currency                 String           @default("GMD")
+  currencySymbol           String           @default("D")
+  surgeMultiplier          Decimal          @default(1.0) @db.Decimal(3, 2)
+  maxSurgeMultiplier       Decimal          @default(3.0) @db.Decimal(3, 2)
+  platformFeePercentage    Decimal          @default(0.15) @db.Decimal(5, 4)
+  driverEarningsPercentage Decimal          @default(0.85) @db.Decimal(5, 4)
+  nightFareMultiplier      Decimal          @default(1.2) @db.Decimal(3, 2)
+  weekendFareMultiplier    Decimal          @default(1.1) @db.Decimal(3, 2)
+  cancellationFee          Decimal          @default(0) @db.Decimal(10, 2)
+  cancellationTimeLimit    Int              @default(300)
+  features                 Json?
+  restrictions             Json?
+  estimatedPickupTime      Int              @default(5)
+  maxWaitTime              Int              @default(10)
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
+  createdBy                String?
+  updatedBy                String?
+  isRentalType             Boolean          @default(false)
+  drivers                  Driver[]
+  rentalRequests           RentalRequest[]
+  rideRequests             RideRequest[]
+  rides                    Ride[]
+
+  @@index([serviceId])
+  @@index([vehicleType])
+  @@index([isActive])
+  @@index([isDefault])
+  @@index([isRentalType])
+  @@index([currency])
+  @@map("ride_services")
+}
+
+model orders {
+  id                         String                @id
+  orderNumber                String                @unique
+  userId                     String
+  sellerId                   String
+  status                     OrderStatus           @default(PENDING)
+  subtotal                   Decimal               @db.Decimal(10, 2)
+  taxAmount                  Decimal               @default(0) @db.Decimal(10, 2)
+  shippingAmount             Decimal               @default(0) @db.Decimal(10, 2)
+  discountAmount             Decimal               @default(0) @db.Decimal(10, 2)
+  totalAmount                Decimal               @db.Decimal(10, 2)
+  currencyCode               String                @db.VarChar(3)
+  customerName               String
+  customerEmail              String?
+  customerPhone              String
+  shippingAddress            String
+  billingAddress             String?
+  paymentMethod              String?
+  paymentStatus              PaymentStatus         @default(PENDING)
+  paymentReference           String?
+  paidAt                     DateTime?
+  shippingMethod             String?
+  trackingNumber             String?
+  shippedAt                  DateTime?
+  deliveredAt                DateTime?
+  notes                      String?
+  sellerNotes                String?
+  metadata                   Json?
+  createdAt                  DateTime              @default(now())
+  updatedAt                  DateTime              @updatedAt
+  cancelledAt                DateTime?
+  deliveryCurrency           String?               @db.VarChar(3)
+  externalTransactions       ExternalTransaction[]
+  items                      OrderItem[]
+  User_orders_sellerIdToUser User                  @relation("orders_sellerIdToUser", fields: [sellerId], references: [id])
+  User_orders_userIdToUser   User                  @relation("orders_userIdToUser", fields: [userId], references: [id], onDelete: Cascade)
+  salesRep                   SalesRep?             @relation("SalesRepOrders", fields: [salesRepId], references: [id])
+  salesRepId                 String?
+  branch                     Branch?                @relation("BranchOrders", fields: [branchId], references: [id])
+  branchId                   String?
+
+  @@index([createdAt])
+  @@index([orderNumber])
+  @@index([paymentStatus])
+  @@index([salesRepId])
+  @@index([branchId])
+  @@index([sellerId])
+  @@index([status])
+  @@index([userId])
+}
+
+model TwilioNotification {
+  id                  String            @id @default(uuid())
+  userId              String?
+  deviceId            String?
+  to                  String
+  from                String?
+  messagingServiceSid String?
+  messageBody         String
+  messageType         TwilioMessageType @default(OTHER)
+  twilioSid           String?
+  twilioStatus        String?
+  segments            Int?
+  price               Decimal?          @db.Decimal(10, 4)
+  priceUnit           String?
+  currencyCode        String?
+  errorCode           String?
+  errorMessage        String?
+  environment         String?
+  apiRequest          Json?
+  apiResponse         Json?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  device              Device?           @relation(fields: [deviceId], references: [id])
+  user                User?             @relation(fields: [userId], references: [id])
+
+  @@index([to])
+  @@index([twilioSid])
+  @@index([messageType])
+  @@index([createdAt])
+  @@map("twilio_notifications")
+}
+
+enum RentalRequestStatus {
+  PENDING_QUOTE
+  QUOTED
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  EXPIRED
+  PAID
+}
+
+enum SenderType {
+  CUSTOMER
+  DRIVER
+}
+
+enum AdminRole {
+  ADMIN
+  MANAGER
+  SUPPORT
+}
+
+enum Permission {
+  ADD
+  EDIT
+  VIEW
+  DELETE
+  EXPORT
+}
+
+enum EntityType {
+  DASHBOARD
+  USERS
+  USERS_SNAP_USERS
+  USERS_KYC_APPROVAL
+  PRODUCTS
+  PRODUCTS_CATEGORIES
+  ORDERS
+  SETTLEMENTS
+  SETTLEMENTS_REQUESTS
+  SETTLEMENTS_SHEET
+  SETTLEMENTS_CUMULATIVE_ENTRIES
+  JOURNALS
+  JOURNALS_STRIPE_PAYMENT_REPORT
+  JOURNALS_SNAP_FEE_REPORT
+  JOURNALS_AUDIT_REPORT
+  SYSTEM_CONFIG
+  SYSTEM_CONFIG_ROLES
+  SYSTEM_CONFIG_OPERATOR_ENTITY
+  SYSTEM_CONFIG_SYSTEM_OPERATOR
+  SYSTEM_CONFIG_SETTLEMENT_GROUP
+  SYSTEM_CONFIG_PAYMENT_GATEWAYS
+  ECOMMERCE
+  ECOMMERCE_SALES_OUTLETS
+  ECOMMERCE_BRANCH_DETAILS
+  ECOMMERCE_PRINCIPAL_BUSINESS
+  SNAP_RIDE
+  SNAP_RIDE_RIDER_APPLICATIONS
+  SNAP_RIDE_DRIVER_MANAGEMENT
+  SNAP_RIDE_RIDE_MANAGEMENT
+  SNAP_RIDE_ANALYTICS
+  SNAP_RIDE_RIDE_SERVICE
+  SNAP_RIDE_RIDE_SERVICE_TIERS
+  SNAP_RENTAL
+  SNAP_RENTAL_REQUEST
+  ANALYTICS
+  ANALYTICS_REVENUE
+  AUTHENTICATION
+  AUTHENTICATION_DEVICE_AUTHENTICATION
+}
+
+enum ProductCondition {
+  NEW
+  EXCELLENT
+  VERY_GOOD
+  REFURBISHED
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  SOLD
+  PENDING
+}
+
+enum BusinessType {
+  INDIVIDUAL
+  SOLE_PROPRIETORSHIP
+  PARTNERSHIP
+  CORPORATION
+  LLC
+}
+
+enum DocumentType {
+  NATIONAL_ID
+  PASSPORT
+  DRIVERS_LICENSE
+  BUSINESS_REGISTRATION
+  TAX_CERTIFICATE
+  CAR_INTERIOR_PHOTO
+  CAR_EXTERIOR_PHOTO
+}
+
+enum KycStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  BLOCKED
+}
+
+enum WalletType {
+  CRYPTO
+  MOBILE_MONEY
+  DIGITAL_WALLET
+}
+
+enum PaymentType {
+  BANK_TRANSFER
+  CREDIT_CARD
+  DEBIT_CARD
+  MOBILE_MONEY
+  CRYPTO
+  DIGITAL_WALLET
+}
+
+enum SettlementStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum SettlementType {
+  BANK_TRANSFER
+  WALLET_TRANSFER
+  ECOMMERCE
+  RIDES
+}
+
+enum SettlementChannel {
+  ECOMMERCE
+  RIDES
+}
+
+enum OrderInterestStatus {
+  PENDING
+  CONFIRMED
+  NEGOTIATING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CANCELLED
+  CONVERTED_TO_ORDER
+}
+
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  PAID
+  FAILED
+  REFUNDED
+  CANCELLED
+  SETTLED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+  COMPLETED
+  AUTHORIZED
+}
+
+enum OrderItemStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum DeliveryType {
+  STANDARD
+  EXPRESS
+  SAME_DAY
+  NEXT_DAY
+  PICKUP
+  INTERNATIONAL
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+  CANCELLED
+  EXPIRED
+}
+
+enum TransactionType {
+  ORIGINAL
+  FEE
+  SERVICE_FEE
+}
+
+enum RiderVehicleType {
+  DRIVER
+  MOTORCYCLE
+  BICYCLE
+}
+
+enum RiderApplicationStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum RideStatus {
+  REQUESTED
+  ACCEPTED
+  ARRIVING
+  ARRIVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum DriverStatus {
+  OFFLINE
+  ONLINE
+  BUSY
+  SUSPENDED
+}
+
+enum RideType {
+  STANDARD
+  PREMIUM
+  POOL
+  DELIVERY
+}
+
+enum RidePaymentMethod {
+  CASH
+  CARD
+  MOBILE_MONEY
+  WALLET
+}
+
+enum DistanceUnit {
+  KILOMETER
+  MILE
+  METER
+}
+
+enum ServiceStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  MAINTENANCE
+}
+
+enum AppService {
+  ECOMMERCE
+  RIDES
+  RENTAL
+}
+
+enum TwilioMessageType {
+  OTP
+  PIN
+  COMBINED
+  OTHER
+}
+
+// Sales Rep Management Models
+model Branch {
+  id              String        @id @default(uuid())
+  parentSellerId  String
+  name            String
+  address         String?
+  city            String?
+  state           String?
+  country         String?
+  postalCode      String?
+  phoneNumber     String?
+  email           String?
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relations
+  parentSeller    User          @relation("ParentSellerBranches", fields: [parentSellerId], references: [id])
+  salesReps       SalesRep[]
+  products        Product[]     @relation("BranchProducts")
+  orders          orders[]      @relation("BranchOrders")
+  
+  @@index([parentSellerId])
+  @@index([isActive])
+}
+
+model SalesRep {
+  id              String        @id @default(uuid())
+  userId          String        @unique  // Reference to User table
+  parentSellerId  String
+  branchId        String
+  status          SalesRepStatus @default(ACTIVE)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relations
+  user            User          @relation("SalesRepUser", fields: [userId], references: [id])
+  parentSeller    User          @relation("ParentSeller", fields: [parentSellerId], references: [id])
+  branch          Branch        @relation(fields: [branchId], references: [id])
+  products        Product[]     @relation("SalesRepProducts")
+  orders          orders[]      @relation("SalesRepOrders")
+  settlements     SalesRepSettlement[]
+  
+  @@index([userId])
+  @@index([parentSellerId])
+  @@index([branchId])
+  @@index([status])
+}
+
+model SalesRepSettlement {
+  id              String            @id @default(uuid())
+  salesRepId      String
+  parentSellerId  String
+  amount          Decimal           @db.Decimal(10, 2)
+  currencyCode    String            @db.VarChar(3)
+  status          SettlementStatus  @default(PENDING)
+  description     String?
+  requestedAt     DateTime          @default(now())
+  processedAt     DateTime?
+  processedBy     String?
+  notes           String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  // Relations
+  salesRep        SalesRep          @relation(fields: [salesRepId], references: [id])
+  parentSeller    User              @relation("ParentSellerSettlements", fields: [parentSellerId], references: [id])
+  
+  @@index([salesRepId])
+  @@index([parentSellerId])
+  @@index([status])
+  @@index([requestedAt])
+}
+
+enum SalesRepStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
