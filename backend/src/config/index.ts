@@ -1,7 +1,7 @@
 export const config = {
   // Database
   database: {
-    url: process.env.DATABASE_URL || 'postgresql://username:password@snap-admin.cloudnexus.biz:5432/marketplace_db',
+    url: process.env.DATABASE_URL || 'postgresql://username:password@localhost:5432/marketplace_db',
   },
   
   // JWT
@@ -22,7 +22,7 @@ export const config = {
   
   // CORS
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://snap-admin.cloudnexus.biz:3001',
+    origin: process.env.CORS_ORIGIN || 'http://localhost:3001',
   },
 };
 
