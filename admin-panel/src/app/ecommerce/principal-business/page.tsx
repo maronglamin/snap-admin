@@ -18,31 +18,45 @@ type PrincipalRow = {
   repsCount: number;
   commerce: {
     ordersCount: number;
-    totalSales: number;
+    salesByCurrency: { currencyCode: string; totalSales: number }[];
     productsCount: number;
   };
 };
 
 export default function PrincipalBusinessPage() {
+  const formatDateInput = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rows, setRows] = useState<PrincipalRow[]>([]);
   const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState(formatDateInput(new Date()));
+  const [dateTo, setDateTo] = useState(formatDateInput(new Date()));
+
+  const load = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await principalBusinessApi.getPrincipals({
+        startDate: dateFrom || undefined,
+        endDate: dateTo || undefined,
+      });
+      setRows(res.data || []);
+    } catch (e: any) {
+      setError(e.message || 'Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const res = await principalBusinessApi.getPrincipals();
-        setRows(res.data || []);
-      } catch (e: any) {
-        setError(e.message || 'Failed to load data');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filtered = rows.filter(r => {
@@ -62,12 +76,35 @@ export default function PrincipalBusinessPage() {
       </div>
 
       <Card className="p-4">
-        <div className="flex items-center gap-3 mb-4">
-          <Input
-            placeholder="Search by name, email, phone or ID"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div className="space-y-3 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+            <div>
+              <label className="text-xs text-gray-500">Date From</label>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">Date To</label>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
+            </div>
+            <div className="md:col-span-2 text-right">
+              <Button onClick={load} disabled={loading}>Apply</Button>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Input
+              placeholder="Search by name, email, phone or ID"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
 
         {error && (
@@ -81,7 +118,7 @@ export default function PrincipalBusinessPage() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Principal</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reps</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orders</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Sales</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Sales (Paid)</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Products</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -105,7 +142,19 @@ export default function PrincipalBusinessPage() {
                     </td>
                     <td className="px-4 py-3 text-sm">{row.repsCount}</td>
                     <td className="px-4 py-3 text-sm">{row.commerce.ordersCount}</td>
-                    <td className="px-4 py-3 text-sm">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'GMD' }).format(row.commerce.totalSales || 0)}</td>
+                    <td className="px-4 py-3 text-sm">
+                      {row.commerce.salesByCurrency?.length ? (
+                        <div className="flex flex-wrap gap-2">
+                          {row.commerce.salesByCurrency.map((s) => (
+                            <span key={s.currencyCode} className="inline-flex items-center rounded border px-2 py-0.5 text-xs">
+                              {new Intl.NumberFormat('en-US', { style: 'currency', currency: s.currencyCode }).format(s.totalSales || 0)}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-gray-500 text-sm">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-sm">{row.commerce.productsCount}</td>
                     <td className="px-4 py-3 text-right">
                       <Link href={`/ecommerce/principal-business/${row.principal.id}`}>

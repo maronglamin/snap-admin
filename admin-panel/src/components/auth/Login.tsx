@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { LockIcon, UserIcon } from 'lucide-react';
+import Image from 'next/image';
 import { useAuthStore } from '../../stores/authStore';
 import { useRouter } from 'next/navigation';
 import MFASetup from './MFASetup';
@@ -88,9 +89,14 @@ export function Login() {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-lg shadow-lg p-8">
           <div className="mb-8 text-center">
-            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <LockIcon className="h-8 w-8 text-white" />
-            </div>
+            <Image
+              src="/snap.svg"
+              alt="SNAP logo"
+              width={64}
+              height={64}
+              className="h-16 w-auto mx-auto mb-4 object-contain"
+              priority
+            />
             <h1 className="text-2xl font-bold text-gray-900">Admin Login</h1>
             <p className="text-gray-600 mt-2">
               Sign in to SNAP admin panel

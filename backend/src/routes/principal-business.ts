@@ -10,6 +10,12 @@ const prisma = new PrismaClient();
 // Returns distinct parent sellers (principal businesses) derived from salesRep.parentSellerId
 router.get('/', authenticate, requirePermission('ECOMMERCE_PRINCIPAL_BUSINESS', 'VIEW'), async (req, res) => {
   try {
+    const { startDate, endDate } = req.query as { startDate?: string; endDate?: string };
+    const parsedStart = startDate && startDate !== 'undefined' ? new Date(startDate) : undefined;
+    const parsedEnd = endDate && endDate !== 'undefined' ? new Date(endDate) : undefined;
+    const hasValidRange = parsedStart instanceof Date && !isNaN(parsedStart.getTime()) && parsedEnd instanceof Date && !isNaN(parsedEnd.getTime());
+    const dateRange = hasValidRange ? { gte: parsedStart!, lte: parsedEnd! } : undefined as any;
+
     // Group by parentSellerId to get distinct principals and number of reps
     const grouped = await (prisma as any).salesRep.groupBy({
       by: ['parentSellerId'],
@@ -41,13 +47,28 @@ router.get('/', authenticate, requirePermission('ECOMMERCE_PRINCIPAL_BUSINESS', 
       const childUserIds = children.map(c => c.userId);
 
       // Aggregate orders and products across all children
-      const [ordersAgg, productsCount] = await Promise.all([
-        (prisma as any).orders.aggregate({
-          where: { sellerId: { in: childUserIds } },
-          _count: { _all: true },
+      const [ordersCountAll, salesByCurrency, productsCount] = await Promise.all([
+        (prisma as any).orders.count({
+          where: { 
+            sellerId: { in: childUserIds },
+            ...(dateRange && { createdAt: dateRange })
+          }
+        }),
+        (prisma as any).orders.groupBy({
+          by: ['currencyCode'],
+          where: {
+            sellerId: { in: childUserIds },
+            paymentStatus: 'PAID',
+            ...(dateRange && { createdAt: dateRange })
+          },
           _sum: { totalAmount: true }
         }),
-        prisma.product.count({ where: { sellerId: { in: childUserIds } } })
+        prisma.product.count({ 
+          where: { 
+            sellerId: { in: childUserIds },
+            ...(dateRange && { createdAt: dateRange })
+          } 
+        })
       ]);
 
       return {
@@ -59,8 +80,11 @@ router.get('/', authenticate, requirePermission('ECOMMERCE_PRINCIPAL_BUSINESS', 
         },
         repsCount: grouped.find((g: any) => g.parentSellerId === principal.id)?._count?.parentSellerId || 0,
         commerce: {
-          ordersCount: ordersAgg?._count?._all || 0,
-          totalSales: ordersAgg?._sum?.totalAmount || 0,
+          ordersCount: ordersCountAll || 0,
+          salesByCurrency: (salesByCurrency || []).map((r: any) => ({
+            currencyCode: r.currencyCode,
+            totalSales: r._sum?.totalAmount || 0
+          })),
           productsCount,
         }
       };
@@ -128,14 +152,12 @@ router.get('/:userId/analytics', authenticate, requirePermission('ECOMMERCE_PRIN
     const hasValidRange = parsedStart instanceof Date && !isNaN(parsedStart.getTime()) && parsedEnd instanceof Date && !isNaN(parsedEnd.getTime());
     const dateRange = hasValidRange ? { gte: parsedStart!, lte: parsedEnd! } : undefined as any;
 
-    const [ordersAgg, ordersByStatus, productsCount] = await Promise.all([
-      (prisma as any).orders.aggregate({
+    const [ordersCountAll, ordersByStatus, productsCount, salesByCurrency] = await Promise.all([
+      (prisma as any).orders.count({
         where: {
           sellerId: userId,
           ...(dateRange && { createdAt: dateRange })
-        },
-        _count: { _all: true },
-        _sum: { totalAmount: true }
+        }
       }),
       (prisma as any).orders.groupBy({
         by: ['status'],
@@ -150,6 +172,15 @@ router.get('/:userId/analytics', authenticate, requirePermission('ECOMMERCE_PRIN
           sellerId: userId,
           ...(dateRange && { createdAt: dateRange })
         }
+      }),
+      (prisma as any).orders.groupBy({
+        by: ['currencyCode'],
+        where: {
+          sellerId: userId,
+          paymentStatus: 'PAID',
+          ...(dateRange && { createdAt: dateRange })
+        },
+        _sum: { totalAmount: true }
       })
     ]);
 
@@ -157,8 +188,11 @@ router.get('/:userId/analytics', authenticate, requirePermission('ECOMMERCE_PRIN
       success: true,
       data: {
         orders: {
-          count: ordersAgg?._count?._all || 0,
-          totalSales: ordersAgg?._sum?.totalAmount || 0,
+          count: ordersCountAll || 0,
+          salesByCurrency: (salesByCurrency || []).map((r: any) => ({
+            currencyCode: r.currencyCode,
+            totalSales: r._sum?.totalAmount || 0
+          })),
           byStatus: ordersByStatus?.map((r: any) => ({ status: r.status, count: r._count?._all || 0 })) || [],
         },
         products: {

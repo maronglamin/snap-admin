@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 type Analytics = {
   orders: {
     count: number;
-    totalSales: number;
+    salesByCurrency: { currencyCode: string; totalSales: number }[];
     byStatus: { status: string; count: number }[];
   };
   products: { count: number };
@@ -80,8 +80,18 @@ export default function PrincipalAnalyticsPage() {
                 <div className="text-2xl font-semibold">{analytics.orders.count}</div>
               </div>
               <div className="rounded-lg border p-4">
-                <div className="text-sm text-gray-500">Total Sales</div>
-                <div className="text-2xl font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'GMD' }).format(analytics.orders.totalSales || 0)}</div>
+                <div className="text-sm text-gray-500">Total Sales (Paid)</div>
+                <div className="space-y-1">
+                  {analytics.orders.salesByCurrency?.length ? (
+                    analytics.orders.salesByCurrency.map((s) => (
+                      <div key={s.currencyCode} className="text-lg font-semibold">
+                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: s.currencyCode }).format(s.totalSales || 0)}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-gray-500">—</div>
+                  )}
+                </div>
               </div>
               <div className="rounded-lg border p-4">
                 <div className="text-sm text-gray-500">Products</div>

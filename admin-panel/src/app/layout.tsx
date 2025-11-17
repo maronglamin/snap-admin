@@ -7,8 +7,13 @@ import { AuthProvider } from '@/components/providers/AuthProvider';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'SNAP Marketplace Admin Panel',
-  description: 'Admin panel for SNAP marketplace management',
+  title: 'SNAP Admin Panel',
+  description: 'Admin panel for SNAP management',
+  icons: {
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
 };
 
 export default function RootLayout({

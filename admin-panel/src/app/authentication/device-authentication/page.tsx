@@ -29,16 +29,36 @@ export default function DeviceAuthenticationPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
+  // Date-time filters
+  const [startDateTime, setStartDateTime] = useState('');
+  const [endDateTime, setEndDateTime] = useState('');
+  const [appliedStartDateTime, setAppliedStartDateTime] = useState('');
+  const [appliedEndDateTime, setAppliedEndDateTime] = useState('');
+
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, search, messageType]);
+  }, [page, search, messageType, appliedStartDateTime, appliedEndDateTime]);
 
   // Reset to first page when filters change (except page itself)
   useEffect(() => {
     setPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, messageType]);
+
+  // Initialize defaults to current day (start/end)
+  useEffect(() => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+    const startStr = start.toISOString().slice(0, 16);
+    const endStr = end.toISOString().slice(0, 16);
+    setStartDateTime(startStr);
+    setEndDateTime(endStr);
+    setAppliedStartDateTime(startStr);
+    setAppliedEndDateTime(endStr);
+  }, []);
 
   const load = async () => {
     try {
@@ -49,6 +69,8 @@ export default function DeviceAuthenticationPage() {
         limit: '10',
         search,
         messageType,
+        dateFrom: appliedStartDateTime,
+        dateTo: appliedEndDateTime,
       };
 
       const resp = await authenticationApi.getDeviceNotifications(params);
@@ -121,6 +143,54 @@ export default function DeviceAuthenticationPage() {
             </div>
           </div>
 
+          {/* Date-Time Filters */}
+          <div className="flex flex-row flex-wrap gap-3 mb-2">
+            <Input
+              type="datetime-local"
+              value={startDateTime}
+              onChange={(e) => setStartDateTime(e.target.value)}
+              className="sm:w-[210px]"
+            />
+            <Input
+              type="datetime-local"
+              value={endDateTime}
+              onChange={(e) => setEndDateTime(e.target.value)}
+              className="sm:w-[210px]"
+            />
+            <Button
+              onClick={() => {
+                const start = new Date(startDateTime);
+                const end = new Date(endDateTime);
+                if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) {
+                  return;
+                }
+                setAppliedStartDateTime(startDateTime);
+                setAppliedEndDateTime(endDateTime);
+                setPage(1);
+              }}
+            >
+              Apply
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                const s = new Date();
+                s.setHours(0, 0, 0, 0);
+                const e = new Date();
+                e.setHours(23, 59, 59, 999);
+                const sStr = s.toISOString().slice(0, 16);
+                const eStr = e.toISOString().slice(0, 16);
+                setStartDateTime(sStr);
+                setEndDateTime(eStr);
+                setAppliedStartDateTime(sStr);
+                setAppliedEndDateTime(eStr);
+                setPage(1);
+              }}
+            >
+              Reset
+            </Button>
+          </div>
+
           {error && <div className="text-red-600 text-sm">{error}</div>}
           <div className="relative">
             <div className="overflow-x-auto min-h-[16rem]">
@@ -151,9 +221,11 @@ export default function DeviceAuthenticationPage() {
           </div>
 
           <div className="flex items-center justify-between mt-4">
-            <div className="text-sm text-gray-600">
-              Page {page} of {Math.max(totalPages, 1)} • {startIndex}-{endIndex} of {total}
-            </div>
+            {total > 0 && (
+              <div className="text-sm text-gray-600">
+                Page {page} of {Math.max(totalPages, 1)} • {startIndex}-{endIndex} of {total}
+              </div>
+            )}
             <div className="space-x-2">
               <Button
                 variant="outline"
