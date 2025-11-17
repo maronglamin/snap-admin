@@ -17,6 +17,7 @@ import {
   mockSettlements, 
   mockDashboardData 
 } from './mockData';
+import { useAuthStore } from '@/stores/authStore';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
@@ -54,9 +55,32 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
   
+  // Rotate token if backend provided a fresh one
+  try {
+    const refreshedToken = response.headers.get('x-token');
+    if (refreshedToken) {
+      useAuthStore.setState((prev: any) => ({
+        ...prev,
+        token: refreshedToken,
+        isAuthenticated: true,
+      }));
+    }
+  } catch (_e) {}
+  
   // Handle rate limiting and other errors
   if (response.status === 429) {
     throw new Error('Too many requests. Please wait a moment and try again.');
+  }
+  
+  if (response.status === 401) {
+    // Mark session expired; do not auto-logout to allow modal UX
+    try {
+      const state = useAuthStore.getState();
+      if (state.isAuthenticated && !state.sessionExpired) {
+        state.markSessionExpired();
+      }
+    } catch (_e) {}
+    throw new Error('Unauthorized. Please login again.');
   }
   
   if (!response.ok) {
@@ -1538,7 +1562,13 @@ export const salesRepsApi = {
 
 // Principal Business API
 export const principalBusinessApi = {
-  getPrincipals: () => apiRequest('/principal-business'),
+  getPrincipals: (params?: { startDate?: string; endDate?: string }) => {
+    const filtered: Record<string, string> = {};
+    if (params?.startDate) filtered.startDate = params.startDate;
+    if (params?.endDate) filtered.endDate = params.endDate;
+    const query = new URLSearchParams(filtered).toString();
+    return apiRequest(`/principal-business${query ? `?${query}` : ''}`);
+  },
   getChildrenWithActivity: (userId: string) => apiRequest(`/principal-business/${userId}/children`),
   getAnalytics: (userId: string, params?: { startDate?: string; endDate?: string }) => {
     const filtered: Record<string, string> = {};

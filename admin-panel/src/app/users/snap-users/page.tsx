@@ -146,7 +146,30 @@ export default function SnapUsersPage() {
     totalSalesGMD: number;
     transactionCount: number;
     currency: string;
+    currentMonth?: string;
   } | null>(null);
+
+  // Date-time filter (default to current day) - user-applied
+  const getTodayRange = () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    return { start, end };
+  };
+  const toInputDateTimeValue = (date: Date) => {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const yyyy = date.getFullYear();
+    const mm = pad(date.getMonth() + 1);
+    const dd = pad(date.getDate());
+    const hh = pad(date.getHours());
+    const mi = pad(date.getMinutes());
+    return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+  };
+  const initialRange = getTodayRange();
+  const [startDateTime, setStartDateTime] = useState<string>(toInputDateTimeValue(initialRange.start));
+  const [endDateTime, setEndDateTime] = useState<string>(toInputDateTimeValue(initialRange.end));
+  const [appliedStartDateTime, setAppliedStartDateTime] = useState<string>(toInputDateTimeValue(initialRange.start));
+  const [appliedEndDateTime, setAppliedEndDateTime] = useState<string>(toInputDateTimeValue(initialRange.end));
 
   // Debounced search effect
   useEffect(() => {
@@ -171,7 +194,7 @@ export default function SnapUsersPage() {
   // Load users when pagination/filters change
   useEffect(() => {
     loadUsers();
-  }, [currentPage, debouncedSearchQuery, filterStatus, filterType]);
+  }, [currentPage, debouncedSearchQuery, filterStatus, filterType, appliedStartDateTime, appliedEndDateTime]);
 
   const loadUsers = async () => {
     try {
@@ -182,6 +205,13 @@ export default function SnapUsersPage() {
         page: currentPage,
         limit: itemsPerPage,
       };
+
+      if (appliedStartDateTime) {
+        params.startDate = new Date(appliedStartDateTime).toISOString();
+      }
+      if (appliedEndDateTime) {
+        params.endDate = new Date(appliedEndDateTime).toISOString();
+      }
 
       if (debouncedSearchQuery) {
         params.search = debouncedSearchQuery;
@@ -558,7 +588,7 @@ export default function SnapUsersPage() {
               {formatLargeNumber(totalUsers)}
             </div>
             <p className="text-xs text-muted-foreground">
-              Snap users
+              SNAP users
             </p>
           </CardContent>
         </Card>
@@ -621,44 +651,77 @@ export default function SnapUsersPage() {
       {/* Filters and Search */}
       <Card>
         <CardHeader>
-          <CardTitle>Snap Users</CardTitle>
+          <CardTitle>SNAP Users</CardTitle>
           <CardDescription>
-            View and manage buyers and sellers on Snap
+            View and manage buyers and sellers on SNAP
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search by name, email, or phone..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+          {/* Filters */}
+          <div className="flex flex-col gap-4 mb-6">
+            {/* Row 1: Search, Type & Status */}
+            <div className="flex flex-row gap-4 items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search by name, email, or phone..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="BUYER">Buyers</SelectItem>
+                  <SelectItem value="SELLER">Sellers</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="ACTIVE">Active</SelectItem>
+                  <SelectItem value="INACTIVE">Inactive</SelectItem>
+                  <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                  <SelectItem value="PENDING">Pending</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="sm:w-[150px]">
-                <SelectValue placeholder="All Types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="BUYER">Buyers</SelectItem>
-                <SelectItem value="SELLER">Sellers</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="sm:w-[150px]">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="INACTIVE">Inactive</SelectItem>
-                <SelectItem value="SUSPENDED">Suspended</SelectItem>
-                <SelectItem value="PENDING">Pending</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Row 2: Date range & Apply */}
+            <div className="flex flex-row gap-4">
+              <Input
+                type="datetime-local"
+                value={startDateTime}
+                onChange={(e) => setStartDateTime(e.target.value)}
+                className="sm:w-[210px]"
+              />
+              <Input
+                type="datetime-local"
+                value={endDateTime}
+                onChange={(e) => setEndDateTime(e.target.value)}
+                className="sm:w-[210px]"
+              />
+              <Button
+                onClick={() => {
+                  const start = new Date(startDateTime);
+                  const end = new Date(endDateTime);
+                  if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) {
+                    return;
+                  }
+                  setAppliedStartDateTime(startDateTime);
+                  setAppliedEndDateTime(endDateTime);
+                  setCurrentPage(1);
+                }}
+              >
+                Apply
+              </Button>
+            </div>
           </div>
 
           {/* Users Table */}
@@ -775,7 +838,7 @@ export default function SnapUsersPage() {
           </div>
 
           {/* Pagination - Always show if there are users */}
-          {totalUsers > 0 && (
+          {filteredUsers.length > 0 && (
             <div className="flex items-center justify-between mt-6">
               <div className="text-sm text-gray-700">
                 Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalUsers)} of {totalUsers} results

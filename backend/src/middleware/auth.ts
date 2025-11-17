@@ -63,6 +63,24 @@ export const authenticate = async (
     };
 
     req.user = adminData;
+
+    // Sliding expiration: proactively issue a fresh token on every authenticated request
+    try {
+      const newToken = jwt.sign(
+        { 
+          id: admin.id,
+          email: admin.email,
+          username: admin.username,
+          role: admin.operatorEntity.role.name,
+          entityId: admin.operatorEntityId
+        },
+        process.env.JWT_SECRET as string,
+        { expiresIn: process.env.JWT_EXPIRES_IN || '30m' } as any
+      );
+      res.setHeader('x-token', newToken);
+    } catch {
+      // Non-fatal: continue without renewal header
+    }
     next();
   } catch (error) {
     return res.status(401).json({

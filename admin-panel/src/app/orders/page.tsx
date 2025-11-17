@@ -70,6 +70,7 @@ export default function OrdersPage() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
+  const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
   const itemsPerPage = 10;
 
   // Load orders
@@ -141,6 +142,7 @@ export default function OrdersPage() {
 
   const handleDownloadInvoice = async (orderId: string) => {
     try {
+      setIsGeneratingInvoice(true);
       const blob = await ordersApi.downloadInvoice(orderId);
       
       // Create download link
@@ -155,6 +157,8 @@ export default function OrdersPage() {
     } catch (error) {
       console.error('Error downloading invoice:', error);
       // You could add a toast notification here
+    } finally {
+      setIsGeneratingInvoice(false);
     }
   };
 
@@ -915,6 +919,16 @@ export default function OrdersPage() {
                 <div className="ml-3">
                   <p className="text-sm text-green-800">Orders report exported successfully!</p>
                 </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Generating Invoice Feedback */}
+          {isGeneratingInvoice && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                <p className="text-sm text-blue-800">Generating invoice file...</p>
               </div>
             </div>
           )}

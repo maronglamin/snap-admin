@@ -2,9 +2,32 @@ import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticate } from '../middleware/auth';
 import puppeteer from 'puppeteer';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const router = Router();
 const prisma = new PrismaClient();
+
+// Load SNAP logo SVG from public folder and convert to data URL (once at startup)
+function getLogoDataUrl(): string {
+  try {
+    const rootPublicPath = path.resolve(__dirname, '../../..', 'public', 'snap.svg');
+    const adminPanelPublicPath = path.resolve(__dirname, '../../..', 'admin-panel', 'public', 'snap.svg');
+    let logoPath = '';
+    if (fs.existsSync(rootPublicPath)) {
+      logoPath = rootPublicPath;
+    } else if (fs.existsSync(adminPanelPublicPath)) {
+      logoPath = adminPanelPublicPath;
+    } else {
+      return '';
+    }
+    const svgContent = fs.readFileSync(logoPath, 'utf8');
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svgContent)}`;
+  } catch {
+    return '';
+  }
+}
+const logoSvgDataUrl = getLogoDataUrl();
 
 // @route   GET /api/orders/count
 // @desc    Get total count of orders for debugging
@@ -637,10 +660,13 @@ function generateInvoiceHTML(order: any) {
         }
         
         .company-logo {
-          font-size: 28px;
-          font-weight: 700;
-          color: #1e3a8a;
           margin-bottom: 10px;
+        }
+        
+        .company-logo img {
+          width: 140px;
+          height: auto;
+          display: block;
         }
         
         .company-details {
@@ -822,12 +848,13 @@ function generateInvoiceHTML(order: any) {
         <div class="header">
           <div class="company-info">
             <div>
-              <div class="company-logo">SNAP</div>
+              <div class="company-logo">
+                ${logoSvgDataUrl ? `<img src="${logoSvgDataUrl}" alt="SNAP Logo" />` : 'SNAP'}
+              </div>
               <div class="company-details">
-                <div>123 Business Street</div>
                 <div>Serekunda, The Gambia</div>
-                <div>Phone: +220 123 456 789</div>
-                <div>Email: info@cloudnexus.biz</div>
+                <div>Phone: +220 354 7128</div>
+                <div>Email: customercare@cloudnexus.biz</div>
               </div>
             </div>
             <div class="invoice-title">

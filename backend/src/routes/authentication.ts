@@ -39,7 +39,17 @@ router.get(
         where.messageType = messageType as TwilioMessageType;
       }
 
-      // Date range filter removed per request
+      // Date range filtering (supports datetime-local strings)
+      const { dateFrom, dateTo } = req.query as { dateFrom?: string; dateTo?: string };
+      if (dateFrom || dateTo) {
+        where.createdAt = {};
+        if (dateFrom) {
+          where.createdAt.gte = new Date(dateFrom);
+        }
+        if (dateTo) {
+          where.createdAt.lte = new Date(dateTo);
+        }
+      }
 
       const total = await prisma.twilioNotification.count({ where });
       const totalPages = Math.ceil(total / limitNum);

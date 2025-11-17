@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 import {
   LayoutDashboard,
   Users,
@@ -41,7 +42,7 @@ const navigation = [
     permission: { entityType: 'DASHBOARD', permission: 'VIEW' }
   },
   { 
-    name: 'Users', 
+    name: 'Users KYC', 
     icon: Users,
     permission: { entityType: 'USERS', permission: 'VIEW' },
     submenu: [
@@ -52,7 +53,7 @@ const navigation = [
         permission: { entityType: 'USERS_SNAP_USERS', permission: 'VIEW' }
       },
       { 
-        name: 'KYC Approval', 
+        name: 'Sellers KYC', 
         href: '/users/kyc-approval', 
         icon: Shield,
         permission: { entityType: 'USERS_KYC_APPROVAL', permission: 'VIEW' }
@@ -134,7 +135,7 @@ const navigation = [
     permission: { entityType: 'SNAP_RIDE', permission: 'VIEW' },
     submenu: [
       { 
-        name: 'Ride Applications', 
+        name: 'Driver KYC', 
         href: '/snap-ride/rider-applications', 
         icon: UserPlus,
         permission: { entityType: 'SNAP_RIDE_RIDER_APPLICATIONS', permission: 'VIEW' }
@@ -318,8 +319,18 @@ export function Sidebar() {
 
   return (
     <div className="flex h-full w-64 flex-col bg-white border-r border-gray-200">
-      <div className="flex h-16 items-center justify-center border-b border-gray-200">
-        <h1 className="text-xl font-bold text-gray-900">SNAP Admin</h1>
+      <div className="flex h-16 items-center justify-start border-b border-gray-200 px-3">
+        <div className="flex items-center gap-2">
+          <Image
+            src="/snap.svg"
+            alt="SNAP"
+            width={64}
+            height={64}
+            className="h-12 w-auto"
+            priority
+          />
+          <h1 className="text-xl font-bold text-gray-900">SNAP Admin</h1>
+        </div>
       </div>
       
       <nav className="flex-1 space-y-1 px-3 py-4">

@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { principalBusinessApi } from '@/services/api';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ArrowLeft } from 'lucide-react';
 
 type Child = {
   userId: string;
@@ -20,7 +21,7 @@ type Child = {
 type Analytics = {
   orders: {
     count: number;
-    totalSales: number;
+    salesByCurrency: { currencyCode: string; totalSales: number }[];
     byStatus: { status: string; count: number }[];
   };
   products: { count: number };
@@ -28,14 +29,21 @@ type Analytics = {
 
 export default function PrincipalBusinessDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const userId = params?.userId as string;
   const [children, setChildren] = useState<Child[]>([]);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const formatDateInput = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  const [dateFrom, setDateFrom] = useState(formatDateInput(new Date()));
+  const [dateTo, setDateTo] = useState(formatDateInput(new Date()));
 
   useEffect(() => {
     if (!userId) return;
@@ -83,7 +91,17 @@ export default function PrincipalBusinessDetailPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Principal Business - Sales Reps</h1>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => router.back()}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+          <h1 className="text-2xl font-semibold">Principal Business - Sales Reps</h1>
+        </div>
       </div>
 
       <Card className="p-4 space-y-4">
@@ -95,7 +113,6 @@ export default function PrincipalBusinessDetailPage() {
               value={dateFrom} 
               onChange={(e) => {
                 setDateFrom(e.target.value);
-                handleDateFilterChange();
               }} 
             />
           </div>
@@ -106,14 +123,16 @@ export default function PrincipalBusinessDetailPage() {
               value={dateTo} 
               onChange={(e) => {
                 setDateTo(e.target.value);
-                handleDateFilterChange();
               }} 
             />
           </div>
           <div className="md:col-span-2 text-right">
-            {selectedChildId && (
-              <Button onClick={() => fetchAnalytics(selectedChildId)} disabled={loading}>Refresh Analytics</Button>
-            )}
+            <Button 
+              onClick={() => selectedChildId && fetchAnalytics(selectedChildId)} 
+              disabled={loading || !selectedChildId}
+            >
+              Apply
+            </Button>
           </div>
         </div>
 
@@ -185,8 +204,18 @@ export default function PrincipalBusinessDetailPage() {
               <div className="text-2xl font-semibold">{analytics.orders.count}</div>
             </div>
             <div className="rounded-lg border p-4">
-              <div className="text-sm text-gray-500">Total Sales</div>
-              <div className="text-2xl font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'GMD' }).format(analytics.orders.totalSales || 0)}</div>
+              <div className="text-sm text-gray-500">Total Sales (Paid)</div>
+              <div className="space-y-1">
+                {analytics.orders.salesByCurrency?.length ? (
+                  analytics.orders.salesByCurrency.map((s) => (
+                    <div key={s.currencyCode} className="text-lg font-semibold">
+                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: s.currencyCode }).format(s.totalSales || 0)}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-gray-500">—</div>
+                )}
+              </div>
             </div>
             <div className="rounded-lg border p-4">
               <div className="text-sm text-gray-500">Products</div>

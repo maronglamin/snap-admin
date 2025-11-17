@@ -13,6 +13,7 @@ interface AuthState {
     permissions?: Record<string, Record<string, boolean>>;
   } | null;
   token: string | null;
+  sessionExpired: boolean;
   mfaRequired: boolean;
   mfaSetupRequired: boolean;
   pendingAdminId: string | null;
@@ -25,6 +26,8 @@ interface AuthState {
   logout: () => void;
   checkAuth: () => boolean;
   resetMFAState: () => void;
+  markSessionExpired: () => void;
+  clearSessionExpired: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -33,6 +36,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       user: null,
       token: null,
+      sessionExpired: false,
       mfaRequired: false,
       mfaSetupRequired: false,
       pendingAdminId: null,
@@ -69,6 +73,7 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: true,
               user: response.data.admin,
               token: response.data.token,
+              sessionExpired: false,
               mfaRequired: false,
               mfaSetupRequired: false,
               pendingAdminId: null,
@@ -99,6 +104,7 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: true,
               user: response.data.admin,
               token: response.data.token,
+              sessionExpired: false,
               mfaRequired: false,
               mfaSetupRequired: false,
               pendingAdminId: null,
@@ -129,6 +135,7 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: true,
               user: response.data.admin,
               token: response.data.token,
+              sessionExpired: false,
               mfaRequired: false,
               mfaSetupRequired: false,
               pendingAdminId: null,
@@ -159,6 +166,7 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: true,
               user: response.data.admin,
               token: response.data.token,
+              sessionExpired: false,
               mfaRequired: false,
               mfaSetupRequired: false,
               pendingAdminId: null,
@@ -196,6 +204,7 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
           user: null,
           token: null,
+          sessionExpired: false,
           mfaRequired: false,
           mfaSetupRequired: false,
           pendingAdminId: null,
@@ -206,6 +215,13 @@ export const useAuthStore = create<AuthState>()(
         const state = get();
         console.log('🔍 Debug - Current auth state:', state);
         return state.isAuthenticated && !!state.token;
+      },
+      markSessionExpired: () => {
+        // Keep isAuthenticated true so UI can display modal overlay
+        set({ sessionExpired: true });
+      },
+      clearSessionExpired: () => {
+        set({ sessionExpired: false });
       }
     }),
     {

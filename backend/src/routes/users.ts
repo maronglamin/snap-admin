@@ -31,7 +31,9 @@ router.get('/', authenticate, async (req: any, res) => {
       status = 'all',
       type = 'all',
       kycStatus = 'all',
-      hasKYC = false
+      hasKYC = false,
+      startDate,
+      endDate
     } = req.query;
 
     const pageNum = parseInt(page as string);
@@ -40,24 +42,75 @@ router.get('/', authenticate, async (req: any, res) => {
 
     // Build where clause for database query
     const where: any = {};
+    const andConditions: any[] = [];
+    const orConditions: any[] = [];
 
     // Search filter
     if (search) {
-      where.OR = [
-        { firstName: { contains: search, mode: 'insensitive' } },
-        { lastName: { contains: search, mode: 'insensitive' } },
-        { phoneNumber: { contains: search, mode: 'insensitive' } },
-      ];
+      andConditions.push({
+        OR: [
+          { firstName: { contains: search, mode: 'insensitive' } },
+          { lastName: { contains: search, mode: 'insensitive' } },
+          { phoneNumber: { contains: search, mode: 'insensitive' } },
+        ]
+      });
+    }
+
+    // Date range filter on createdAt (join date)
+    if (startDate || endDate) {
+      const createdAt: any = {};
+      if (startDate) createdAt.gte = new Date(startDate as string);
+      if (endDate) createdAt.lte = new Date(endDate as string);
+      andConditions.push({ createdAt });
     }
 
     // KYC filter - only get users with KYC if requested
     if (hasKYC === 'true') {
-      where.sellerKyc = {
-        isNot: null
-      };
+      andConditions.push({ sellerKyc: { isNot: null } });
     }
 
-    // Get all users first to calculate proper totals
+    // Type filter
+    if (type === 'BUYER') {
+      andConditions.push({ sellerKyc: { is: null } });
+    } else if (type === 'SELLER') {
+      andConditions.push({ sellerKyc: { isNot: null } });
+    }
+
+    // KYC status filter
+    if (kycStatus !== 'all' && type !== 'BUYER') {
+      andConditions.push({ sellerKyc: { is: { status: kycStatus } } });
+    }
+
+    // Derived status filter
+    if (status !== 'all') {
+      if (status === 'ACTIVE') {
+        if (type === 'SELLER') {
+          andConditions.push({ sellerKyc: { is: { status: 'APPROVED' } } });
+        } else if (type === 'BUYER') {
+          andConditions.push({ sellerKyc: { is: null } });
+        } else {
+          orConditions.push({ sellerKyc: { is: null } });
+          orConditions.push({ sellerKyc: { is: { status: 'APPROVED' } } });
+        }
+      } else if (status === 'PENDING') {
+        andConditions.push({ sellerKyc: { is: { status: 'PENDING' } } });
+      } else if (status === 'SUSPENDED') {
+        andConditions.push({ sellerKyc: { is: { status: { in: ['REJECTED', 'SUSPENDED'] } } } });
+      }
+      // Note: 'INACTIVE' not mapped in current domain; leaving as no-op
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = [...(where.AND || []), ...andConditions];
+    }
+    if (orConditions.length > 0) {
+      where.AND = [...(where.AND || []), { OR: orConditions }];
+    }
+
+    // Count filtered users
+    const totalFiltered = await prisma.user.count({ where });
+
+    // Get paginated users only (server-side pagination)
     const allUsers = await prisma.user.findMany({
       where,
       include: {
@@ -110,36 +163,10 @@ router.get('/', authenticate, async (req: any, res) => {
             status: true,
           }
         },
-        // Temporarily commented out due to schema issues
-        // orders: {
-        //   select: {
-        //     id: true,
-        //     status: true,
-        //     totalAmount: true,
-        //     currencyCode: true,
-        //     paymentStatus: true,
-        //     createdAt: true,
-        //   }
-        // },
-        // sellerOrders: {
-        //   select: {
-        //     id: true,
-        //     status: true,
-        //     totalAmount: true,
-        //     currencyCode: true,
-        //     paymentStatus: true,
-        //     createdAt: true,
-        //   }
-        // },
-        // settlements: {
-        //   select: {
-        //     id: true,
-        //     amount: true,
-        //     status: true,
-        //   }
-        // },
       },
       orderBy: { createdAt: 'desc' },
+      skip,
+      take: limitNum,
     });
 
     // Transform all users to determine type and status
@@ -175,31 +202,10 @@ router.get('/', authenticate, async (req: any, res) => {
       };
     });
 
-    // Apply status and type filters to get total counts
-    let filteredTransformedUsers = allTransformedUsers;
-    
-    if (status !== 'all') {
-      filteredTransformedUsers = filteredTransformedUsers.filter(user => user.status === status);
-    }
-    
-    if (type !== 'all') {
-      filteredTransformedUsers = filteredTransformedUsers.filter(user => user.type === type);
-    }
-
-    // Apply KYC status filter
-    if (kycStatus !== 'all') {
-      filteredTransformedUsers = filteredTransformedUsers.filter(user => user.kycStatus === kycStatus);
-    }
-
-    // Get total count after filtering
-    const totalFiltered = filteredTransformedUsers.length;
     const totalPages = Math.ceil(totalFiltered / limitNum);
 
-    // Get paginated subset for response
-    const paginatedUsers = filteredTransformedUsers.slice(skip, skip + limitNum);
-
     // Transform paginated users with detailed calculations
-    const transformedUsers = paginatedUsers.map(({ user, type: userType, status: userStatus, kycStatus }) => {
+    const transformedUsers = allTransformedUsers.map(({ user, type: userType, status: userStatus, kycStatus }) => {
       // Calculate statistics with currency consideration
       const totalProducts = user.products.filter(p => p.status === 'ACTIVE').length;
       // Temporarily commented out due to schema issues

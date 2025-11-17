@@ -171,7 +171,7 @@ router.post('/verify-mfa', [
         entityId: admin.operatorEntityId
       },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' } as any
+      { expiresIn: process.env.JWT_EXPIRES_IN || '30m' } as any
     );
 
     // Transform permissions to frontend format
@@ -293,7 +293,7 @@ router.post('/enable-mfa', [
         entityId: admin.operatorEntityId
       },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' } as any
+      { expiresIn: process.env.JWT_EXPIRES_IN || '30m' } as any
     );
 
     // Transform permissions to frontend format
@@ -393,7 +393,7 @@ router.post('/verify-backup-code', [
         entityId: admin.operatorEntityId
       },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' } as any
+      { expiresIn: process.env.JWT_EXPIRES_IN || '30m' } as any
     );
 
     // Transform permissions to frontend format
