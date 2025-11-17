@@ -6,7 +6,7 @@ Create a `.env` file in the backend directory with the following variables:
 
 ```env
 # Database
-DATABASE_URL="postgresql://username:password@localhost:5432/marketplace_db"
+DATABASE_URL="postgresql://username:password@snap-admin.cloudnexus.biz:5432/marketplace_db"
 
 # JWT Secret
 JWT_SECRET="your-super-secret-jwt-key-here"
@@ -18,10 +18,10 @@ NODE_ENV=development
 # Image Server Configuration
 IMAGE_SERVER_URL="https://your-image-server.com"
 # or for local development:
-# IMAGE_SERVER_URL="http://localhost:3002"
+# IMAGE_SERVER_URL="http://snap-admin.cloudnexus.biz:3002"
 
 # Other Configuration
-CORS_ORIGIN="http://localhost:3001"
+CORS_ORIGIN="http://snap-admin.cloudnexus.biz:3001"
 ```
 
 ## Image Server Configuration
