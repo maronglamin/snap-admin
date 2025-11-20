@@ -43,7 +43,7 @@ for (let i = -2; i <= 2; i++) {
 
 console.log('');
 console.log('🧪 Test the enable-mfa endpoint with CURRENT token:');
-console.log(`curl -X POST http://snap-admin.cloudnexus.biz:8080/api/auth/enable-mfa \\`);
+console.log(`curl -X POST http://localhost:8080/api/auth/enable-mfa \\`);
 console.log(`  -H "Content-Type: application/json" \\`);
 console.log(`  -d '{"adminId":"cmd9vzyqp0000x25hhvod5m0t","token":"${currentToken}"}'`);
 console.log('');

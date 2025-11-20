@@ -60,7 +60,7 @@ A modern, responsive admin panel for the SNAP marketplace built with Next.js, Ty
    ```
 
 4. **Open your browser**
-   Navigate to [http://snap-admin.cloudnexus.biz:3001](http://snap-admin.cloudnexus.biz:3001)
+   Navigate to [http://localhost:3001](http://localhost:3001)
 
 ## Project Structure
 
@@ -126,12 +126,12 @@ Create a `.env.local` file in the root directory:
 
 ```env
 # API Configuration
-NEXT_PUBLIC_API_URL=http://snap-admin.cloudnexus.biz:3001
-NEXT_PUBLIC_WS_URL=ws://snap-admin.cloudnexus.biz:3001
+NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_WS_URL=ws://localhost:3001
 
 # Authentication
 NEXTAUTH_SECRET=your-secret-key-here
-NEXTAUTH_URL=http://snap-admin.cloudnexus.biz:3001
+NEXTAUTH_URL=http://localhost:3001
 
 # Mock Data Configuration
 NEXT_PUBLIC_USE_MOCK_DATA=true
