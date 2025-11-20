@@ -19,7 +19,7 @@ import {
 } from './mockData';
 import { useAuthStore } from '@/stores/authStore';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://snap-admin.cloudnexus.biz:8080/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
 // Helper function to get auth token
 const getAuthToken = () => {
@@ -816,7 +816,7 @@ class ApiService {
 
   private handleMockRequest<T>(endpoint: string, options?: RequestInit): T {
     // Parse query parameters
-    const url = new URL(`http://snap-admin.cloudnexus.biz${endpoint}`);
+    const url = new URL(`http://localhost${endpoint}`);
     const params = Object.fromEntries(url.searchParams.entries());
 
     switch (endpoint.split('?')[0]) {

@@ -8,28 +8,27 @@ The cumulative entries report provides a complete financial overview of the plat
 | Source | Table | Classification | Description |
 |--------|-------|----------------|-------------|
 | **Settlements** | `settlement` | **DEBIT** | Money requested by sellers for withdrawal |
-| **Orders** | `order` | **DEBIT** | Customer payments and order amounts |
-| **External Transactions** | `external_transaction` | **MIXED** | Payment processing and fees |
+| **Orders** | `order` | **DETAILS ONLY** | Shown for reference; not included in totals |
+| **External Transactions** | `external_transaction` | **MIXED** | Payment processing and fees (SUCCESS only) |
 
 ## 💰 Transaction Types (External Transactions)
 
 | Type | Classification | Description | Example |
 |------|----------------|-------------|---------|
-| `ORIGINAL` | **DEBIT** | Customer payment amount | $100 order payment |
-| `FEE` | **CREDIT** | Payment gateway fees | Stripe processing fee |
-| `SERVICE_FEE` | **CREDIT** | Platform revenue | 5% service fee |
+| `ORIGINAL` | **CREDIT** | Customer payment amount (SUCCESS only) | $100 order payment |
+| `FEE` | **DEBIT** | Payment gateway fees | Stripe processing fee |
+| `SERVICE_FEE` | — (excluded from totals) | Used only for closing balance | 5% service fee |
 
 ## 🧮 Calculation Formula
 
-### Debits (Money In)
+### Debits
 ```
-Total Debits = Settlement Requests + Discounts + Tax + Shipping + 
-               Total Order Amounts + Original Payments
+Total Debits = Settlement Requests + Gateway Fees
 ```
 
-### Credits (Money Out)
+### Credits
 ```
-Total Credits = Service Fees + Gateway Fees
+Total Credits = Customer Payments (ORIGINAL, SUCCESS only)
 ```
 
 ### Net Position
@@ -37,27 +36,38 @@ Total Credits = Service Fees + Gateway Fees
 Net Position = Total Debits - Total Credits
 ```
 
+### Closing Balance (Displayed only)
+```
+Closing Balance = Service Fees - Gateway Fees
+```
+
 ## 📈 Business Logic Examples
 
 ### Example 1: Single Order Flow
 ```
 Customer Order: $100
-├── Debit: Original Payment = $100
-├── Credit: Gateway Fee = $2.90
-├── Credit: Service Fee = $5.00
+├── Credit: Customer Payment (ORIGINAL, SUCCESS) = $100
+├── Debit: Gateway Fee (FEE) = $2.90
+├── Closing Balance Component: Service Fee (SERVICE_FEE) = $5.00
 └── Debit: Settlement Request = $92.10
 
-Net Position: $100 - $2.90 - $5.00 = $92.10 ✅
+Totals:
+Debits = $2.90 + $92.10 = $95.00
+Credits = $100.00
+Net Position = $95.00 - $100.00 = -$5.00
+Closing Balance (Service - Gateway) = $5.00 - $2.90 = $2.10 ✅
 ```
 
 ### Example 2: Platform Revenue
 ```
 10 Orders × $100 = $1,000
-├── Gateway Fees: $29.00
-├── Service Fees: $50.00
-└── Net Revenue: $921.00
+├── Debits: Gateway Fees = $29.00
+├── Credits: Customer Payments = $1,000.00
+├── Debits: Settlement Requests = $921.00
+└── Closing Balance: Service Fees - Gateway Fees = $50.00 - $29.00 = $21.00
 
-Platform Revenue = Service Fees = $50.00 💰
+Net Position = ($29.00 + $921.00) - $1,000.00 = -$50.00
+Closing Balance = $21.00 💰
 ```
 
 ## 🔍 Key Metrics
@@ -71,18 +81,19 @@ Platform Revenue = Service Fees = $50.00 💰
 - **Action**: Requires investigation
 
 ### Service Fees
-- **Purpose**: Primary platform revenue
-- **Calculation**: Percentage of order amounts
+- **Purpose**: Platform revenue (used for closing balance; excluded from totals)
+- **Calculation**: Percentage of order amounts (recorded as `SERVICE_FEE`)
 
 ### Gateway Fees
 - **Purpose**: Payment processor costs
-- **Impact**: Reduces net revenue
+- **Impact**: Debited to platform; reduces net position
 
 ## 📅 Filtering Options
 
 - **Date Range**: `dateFrom` & `dateTo` parameters
 - **Currency**: Specific currency filtering
 - **Real-time**: Current database state
+- **Success Filter**: External transactions must have `status = SUCCESS`
 
 ## 🎯 Use Cases
 

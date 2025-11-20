@@ -139,17 +139,20 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
           currency,
           debits: {
             settlementRequests: 0,
-            original: 0,
+            gatewayFee: 0, // gateway fee from external transactions (FEE)
           },
           credits: {
-            serviceFee: 0,
-            gatewayFee: 0,
+            customerPayments: 0,
           },
           details: {
             settlements: [],
             orders: [],
             externalTransactions: [],
-          }
+          },
+          feeBreakdown: {
+            serviceFee: 0,
+            gatewayFee: 0,
+          },
         };
       }
       
@@ -157,7 +160,7 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
       currencyGroups[currency].details.settlements.push(settlement);
     });
 
-    // Process orders (DR - Debit)
+    // Process orders (details only; do not include in credit/debit totals)
     orders.forEach(order => {
       const currency = order.currencyCode;
       if (!currencyGroups[currency]) {
@@ -165,17 +168,20 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
           currency,
           debits: {
             settlementRequests: 0,
-            original: 0,
+            gatewayFee: 0,
           },
           credits: {
-            serviceFee: 0,
-            gatewayFee: 0,
+            customerPayments: 0,
           },
           details: {
             settlements: [],
             orders: [],
             externalTransactions: [],
-          }
+          },
+          feeBreakdown: {
+            serviceFee: 0,
+            gatewayFee: 0,
+          },
         };
       }
       
@@ -191,17 +197,20 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
           currency,
           debits: {
             settlementRequests: 0,
-            original: 0,
+            gatewayFee: 0,
           },
           credits: {
-            serviceFee: 0,
-            gatewayFee: 0,
+            customerPayments: 0,
           },
           details: {
             settlements: [],
             orders: [],
             externalTransactions: [],
-          }
+          },
+          feeBreakdown: {
+            serviceFee: 0,
+            gatewayFee: 0,
+          },
         };
       }
       
@@ -209,13 +218,16 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
       
       switch (transaction.transactionType) {
         case 'ORIGINAL':
-          currencyGroups[currency].debits.original += amount;
+          // Customer payments should be on the credit side
+          currencyGroups[currency].credits.customerPayments += amount;
           break;
         case 'FEE':
-          currencyGroups[currency].credits.gatewayFee += amount;
+          // Track gateway fees for subtotal computation
+          currencyGroups[currency].feeBreakdown.gatewayFee += amount;
           break;
         case 'SERVICE_FEE':
-          currencyGroups[currency].credits.serviceFee += amount;
+          // Track service fees for subtotal computation
+          currencyGroups[currency].feeBreakdown.serviceFee += amount;
           break;
       }
       
@@ -226,6 +238,14 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
     Object.keys(currencyGroups).forEach(currency => {
       const group = currencyGroups[currency];
       
+      // Compute fee breakdown
+      const serviceFee = Number(group.feeBreakdown?.serviceFee || 0);
+      const gatewayFee = Number(group.feeBreakdown?.gatewayFee || 0);
+      // Debit should reflect gateway fees (from external transactions)
+      group.debits.gatewayFee = gatewayFee;
+      // Provide a closing balance per currency for convenience
+      group.closingBalance = serviceFee - gatewayFee;
+
       // Calculate total debits
       group.totalDebits = Object.values(group.debits).reduce((sum: number, value: any) => sum + value, 0);
       
@@ -285,6 +305,7 @@ router.get('/cumulative-entries', authenticate, async (req: any, res) => {
         totalDebits: result.find((group: any) => group.currency === 'GMD')?.totalDebits || 0,
         totalCredits: result.find((group: any) => group.currency === 'GMD')?.totalCredits || 0,
         netPosition: result.find((group: any) => group.currency === 'GMD')?.netPosition || 0,
+        closingBalance: result.find((group: any) => group.currency === 'GMD')?.closingBalance || 0,
       }
     });
   } catch (error) {

@@ -42,15 +42,15 @@ interface FinancialEntry {
   currency: string;
   debits: {
     settlementRequests: number;
-    original: number;
+    gatewayFee: number; // gateway fee from external transactions
   };
   credits: {
-    serviceFee: number;
-    gatewayFee: number;
+    customerPayments: number;
   };
   totalDebits: number;
   totalCredits: number;
   netPosition: number;
+  closingBalance?: number;
   details: {
     settlements: any[];
     orders: any[];
@@ -63,6 +63,7 @@ interface FinancialSummary {
   totalDebits: number;
   totalCredits: number;
   netPosition: number;
+  closingBalance?: number;
 }
 
 export default function CumulativeEntriesPage() {
@@ -221,13 +222,11 @@ export default function CumulativeEntriesPage() {
       // Debit entries section
       csvContent += createCSVRow('DEBIT ENTRIES');
       csvContent += createCSVRow('Settlement Requests', formatNumberWithSeparators(entry.debits.settlementRequests));
-      csvContent += createCSVRow('Customer payments and order costs', formatNumberWithSeparators(entry.debits.original));
+      csvContent += createCSVRow('Gateway Fee', formatNumberWithSeparators(entry.debits.gatewayFee));
       
       // Credit entries section
       csvContent += createCSVRow('CREDIT ENTRIES');
-      csvContent += createCSVRow('Service Fees', '', formatNumberWithSeparators(entry.credits.serviceFee));
-      csvContent += createCSVRow('Gateway Fees', '', formatNumberWithSeparators(entry.credits.gatewayFee));
-      csvContent += createCSVRow('Subtotal (Service - Gateway)', '', formatNumberWithSeparators(entry.credits.serviceFee - entry.credits.gatewayFee));
+      csvContent += createCSVRow('Customer Payments', '', formatNumberWithSeparators(entry.credits.customerPayments));
       
       // Totals
       csvContent += createCSVRow('TOTALS', formatNumberWithSeparators(entry.totalDebits), formatNumberWithSeparators(entry.totalCredits));
@@ -235,6 +234,10 @@ export default function CumulativeEntriesPage() {
       // Balance
       const balanceLabel = entry.netPosition > 0 ? '(Net Debit)' : entry.netPosition < 0 ? '(Net Credit)' : '(Balanced)';
       csvContent += createCSVRow('BALANCE (DR - CR)', formatNumberWithSeparators(entry.netPosition) + ' ' + balanceLabel);
+      
+      // Closing balance
+      const closing = typeof entry.closingBalance === 'number' ? entry.closingBalance : 0;
+      csvContent += createCSVRow('CLOSING BALANCE (Service - Gateway)', formatNumberWithSeparators(closing));
       
       // Footer
       csvContent += '\n';
@@ -349,7 +352,7 @@ export default function CumulativeEntriesPage() {
       // Add debit entries
       const debitEntries = [
         ['Settlement Requests', formatNumberWithSeparators(entry.debits.settlementRequests), ''],
-        ['Customer payments and order costs', formatNumberWithSeparators(entry.debits.original), '']
+        ['Gateway Fee', formatNumberWithSeparators(entry.debits.gatewayFee), '']
       ];
       
       debitEntries.forEach(([label, debitValue, creditValue]) => {
@@ -396,9 +399,7 @@ export default function CumulativeEntriesPage() {
       
       // Add credit entries
       const creditEntries = [
-        ['Service Fees', '', formatNumberWithSeparators(entry.credits.serviceFee)],
-        ['Gateway Fees', '', formatNumberWithSeparators(entry.credits.gatewayFee)],
-        ['Subtotal (Service - Gateway)', '', formatNumberWithSeparators(entry.credits.serviceFee - entry.credits.gatewayFee)]
+        ['Customer Payments', '', formatNumberWithSeparators(entry.credits.customerPayments)]
       ];
       
       creditEntries.forEach(([label, debitValue, creditValue]) => {
@@ -491,6 +492,26 @@ export default function CumulativeEntriesPage() {
       balanceValueCell.style.textAlign = 'center';
       balanceValueCell.style.border = '2px solid #2980b9';
       balanceValueCell.style.fontFamily = 'Courier New, monospace';
+      
+      // Add closing balance row
+      const closingRow = table.insertRow();
+      closingRow.style.height = '30px';
+      const closingLabelCell = closingRow.insertCell();
+      closingLabelCell.textContent = 'CLOSING BALANCE (Service - Gateway)';
+      closingLabelCell.style.fontWeight = 'bold';
+      closingLabelCell.style.fontSize = '12px';
+      closingLabelCell.style.backgroundColor = '#ecf0f1';
+      closingLabelCell.style.color = '#333';
+      closingLabelCell.style.padding = '8px';
+      closingLabelCell.style.border = '1px solid #bdc3c7';
+      closingLabelCell.colSpan = 2;
+      const closingValueCell = closingRow.insertCell();
+      const closingVal = typeof entry.closingBalance === 'number' ? entry.closingBalance : 0;
+      closingValueCell.textContent = formatNumberWithSeparators(closingVal);
+      closingValueCell.style.textAlign = 'right';
+      closingValueCell.style.padding = '8px';
+      closingValueCell.style.border = '1px solid #bdc3c7';
+      closingValueCell.style.backgroundColor = '#ecf0f1';
       
       // Add footer
       const footerRow = table.insertRow();
@@ -652,27 +673,17 @@ export default function CumulativeEntriesPage() {
                     <td class="text-right">-</td>
                   </tr>
                   <tr>
-                    <td class="indent">Customer payments and order costs</td>
-                    <td class="text-right">${formatNumberWithSeparators(entry.debits.original)}</td>
+                    <td class="indent">Gateway Fee</td>
+                    <td class="text-right">${formatNumberWithSeparators(entry.debits.gatewayFee)}</td>
                     <td class="text-right">-</td>
                   </tr>
                   <tr class="credit-section">
                     <td colspan="3">CREDIT ENTRIES</td>
                   </tr>
                   <tr>
-                    <td class="indent">Service Fees</td>
+                    <td class="indent">Customer Payments</td>
                     <td class="text-right">-</td>
-                    <td class="text-right">${formatNumberWithSeparators(entry.credits.serviceFee)}</td>
-                  </tr>
-                  <tr>
-                    <td class="indent">Gateway Fees</td>
-                    <td class="text-right">-</td>
-                    <td class="text-right">${formatNumberWithSeparators(entry.credits.gatewayFee)}</td>
-                  </tr>
-                  <tr>
-                    <td class="indent">Subtotal (Service - Gateway)</td>
-                    <td class="text-right">-</td>
-                    <td class="text-right">${formatNumberWithSeparators(entry.credits.serviceFee - entry.credits.gatewayFee)}</td>
+                    <td class="text-right">${formatNumberWithSeparators(entry.credits.customerPayments)}</td>
                   </tr>
                   <tr class="totals-row">
                     <td><strong>TOTALS</strong></td>
@@ -684,6 +695,11 @@ export default function CumulativeEntriesPage() {
                       <strong>BALANCE (DR - CR): ${formatNumberWithSeparators(entry.netPosition)} 
                       ${entry.netPosition > 0 ? '(Net Debit)' : entry.netPosition < 0 ? '(Net Credit)' : '(Balanced)'}</strong>
                     </td>
+                  </tr>
+                  <tr>
+                    <td class="indent"><strong>CLOSING BALANCE (Service - Gateway)</strong></td>
+                    <td class="text-right"><strong>${formatNumberWithSeparators(typeof entry.closingBalance === 'number' ? entry.closingBalance : 0)}</strong></td>
+                    <td class="text-right">-</td>
                   </tr>
                 </tbody>
               </table>
@@ -1088,10 +1104,10 @@ export default function CumulativeEntriesPage() {
                               </tr>
                               <tr className="hover:bg-gray-50">
                                 <td className="px-6 py-3 text-sm text-gray-700 pl-8">
-                                  Customer payments and order costs
+                                  Gateway Fee
                                 </td>
                                 <td className="px-6 py-3 text-right text-sm font-medium text-red-900">
-                                  {formatAmount(entry.debits.original, entry.currency)}
+                                  {formatAmount(entry.debits.gatewayFee, entry.currency)}
                                 </td>
                                 <td className="px-6 py-3 text-right text-sm text-gray-500">-</td>
                               </tr>
@@ -1106,29 +1122,11 @@ export default function CumulativeEntriesPage() {
                               </tr>
                               <tr className="hover:bg-gray-50">
                                 <td className="px-6 py-3 text-sm text-gray-700 pl-8">
-                                  Service Fees
+                                  Customer Payments
                                 </td>
                                 <td className="px-6 py-3 text-right text-sm text-gray-500">-</td>
                                 <td className="px-6 py-3 text-right text-sm font-medium text-green-900">
-                                  {formatAmount(entry.credits.serviceFee, entry.currency)}
-                                </td>
-                              </tr>
-                              <tr className="hover:bg-gray-50">
-                                <td className="px-6 py-3 text-sm text-gray-700 pl-8">
-                                  Gateway Fees
-                                </td>
-                                <td className="px-6 py-3 text-right text-sm text-gray-500">-</td>
-                                <td className="px-6 py-3 text-right text-sm font-medium text-green-900">
-                                  {formatAmount(entry.credits.gatewayFee, entry.currency)}
-                                </td>
-                              </tr>
-                              <tr className="hover:bg-gray-50">
-                                <td className="px-6 py-3 text-sm text-gray-700 pl-8">
-                                  Subtotal (Service - Gateway)
-                                </td>
-                                <td className="px-6 py-3 text-right text-sm text-gray-500">-</td>
-                                <td className="px-6 py-3 text-right text-sm font-medium text-green-900">
-                                  {formatAmount(entry.credits.serviceFee - entry.credits.gatewayFee, entry.currency)}
+                                  {formatAmount(entry.credits.customerPayments, entry.currency)}
                                 </td>
                               </tr>
 
@@ -1155,6 +1153,14 @@ export default function CumulativeEntriesPage() {
                                   <span className={`ml-2 text-xs ${getNetPositionColor(entry.netPosition)}`}>
                                     {entry.netPosition > 0 ? '(Net Debit)' : entry.netPosition < 0 ? '(Net Credit)' : '(Balanced)'}
                                   </span>
+                                </td>
+                              </tr>
+                              <tr className="bg-gray-50 border-t border-gray-200">
+                                <td className="px-6 py-3 text-sm font-bold text-gray-700">
+                                  CLOSING BALANCE (Service - Gateway)
+                                </td>
+                                <td className="px-6 py-3 text-right text-sm font-bold text-gray-900" colSpan={2}>
+                                  {formatAmount(typeof entry.closingBalance === 'number' ? entry.closingBalance : 0, entry.currency)}
                                 </td>
                               </tr>
                             </tbody>

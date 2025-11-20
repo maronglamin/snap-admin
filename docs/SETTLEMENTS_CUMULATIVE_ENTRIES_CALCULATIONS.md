@@ -13,7 +13,7 @@ The `/api/settlements/cumulative-entries` endpoint generates a comprehensive fin
 ### 2. Orders Table
 - **Purpose**: Records all customer orders and their financial components
 - **Key Fields**: `discountAmount`, `taxAmount`, `shippingAmount`, `totalAmount`, `currencyCode`, `createdAt`
-- **Classification**: **DEBIT** (Customer payments and order-related amounts)
+- **Classification**: **DETAILS ONLY** (Not included in debit/credit totals; shown for reference)
 
 ### 3. External Transactions Table
 - **Purpose**: Records all payment gateway transactions and fees
@@ -26,17 +26,17 @@ The `/api/settlements/cumulative-entries` endpoint generates a comprehensive fin
 
 #### 1. ORIGINAL Transactions
 - **Description**: The actual customer payment amount
-- **Classification**: **DEBIT** (Money coming into the platform)
+- **Classification**: **CREDIT** (Successful customer payments credited to platform)
 - **Example**: Customer pays $100 for an order
 
 #### 2. FEE Transactions
 - **Description**: Payment gateway processing fees (e.g., Stripe fees)
-- **Classification**: **CREDIT** (Money flowing out to payment processors)
+- **Classification**: **DEBIT** (Costs paid to payment processors)
 - **Example**: Stripe charges $2.90 + 2.9% = $5.80 fee
 
 #### 3. SERVICE_FEE Transactions
 - **Description**: Platform service fees charged to sellers
-- **Classification**: **CREDIT** (Platform revenue)
+- **Classification**: **EXCLUDED FROM TOTALS** (Tracked only for closing balance; not shown as a separate credit line)
 - **Example**: 5% service fee on $100 order = $5.00
 
 ## Calculation Logic
@@ -52,7 +52,12 @@ const dateFilter = {
 // Fetch all relevant data
 const settlements = await prisma.settlement.findMany({...});
 const orders = await prisma.order.findMany({...});
-const externalTransactions = await prisma.externalTransaction.findMany({...});
+const externalTransactions = await prisma.externalTransaction.findMany({
+  where: {
+    status: 'SUCCESS', // Only successful transactions are included in totals
+    // ... plus date and currency filters
+  }
+});
 ```
 
 ### Step 2: Currency Grouping
@@ -68,60 +73,48 @@ debits.settlementRequests += Number(settlement.amount);
 - **Logic**: Sum of all settlement request amounts
 - **Purpose**: Money requested by sellers for withdrawal
 
-#### Order-Related Debits
-```typescript
-debits.discounts += Number(order.discountAmount);
-debits.tax += Number(order.taxAmount);
-debits.shippingAmount += Number(order.shippingAmount);
-debits.totalAmount += Number(order.totalAmount);
-```
-- **Source**: Orders table
-- **Logic**: Sum of order financial components
-- **Purpose**: Customer payments and order costs
-
-#### Original Transaction Amounts
-```typescript
-if (transaction.transactionType === 'ORIGINAL') {
-  debits.original += Number(transaction.amount);
-}
-```
-- **Source**: External transactions table
-- **Logic**: Sum of all original payment amounts
-- **Purpose**: Total customer payments processed
-
-### Step 4: Credit Calculations
-
 #### Gateway Fees
 ```typescript
 if (transaction.transactionType === 'FEE') {
-  credits.gatewayFee += Number(transaction.amount);
+  debits.gatewayFee += Number(transaction.amount);
 }
 ```
-- **Source**: External transactions table
+- **Source**: External transactions (SUCCESS only)
 - **Logic**: Sum of all payment gateway fees
-- **Purpose**: Fees paid to payment processors (Stripe, etc.)
+- **Purpose**: Processor costs debited to the platform
 
-#### Service Fees
+### Step 4: Credit Calculations
+
+#### Customer Payments (Original)
 ```typescript
-if (transaction.transactionType === 'SERVICE_FEE') {
-  credits.serviceFee += Number(transaction.amount);
+if (transaction.transactionType === 'ORIGINAL') {
+  credits.customerPayments += Number(transaction.amount);
 }
 ```
-- **Source**: External transactions table
-- **Logic**: Sum of all platform service fees
-- **Purpose**: Platform revenue from seller transactions
+- **Source**: External transactions (SUCCESS only)
+- **Logic**: Sum of all original payment amounts
+- **Purpose**: Total successful customer payments credited to the platform
 
-### Step 5: Net Position Calculation
+### Step 5: Closing Balance
+
+The closing balance provides the difference between platform service fees and gateway fees. It is displayed for reference and not included in debit/credit totals.
+
+```typescript
+closingBalance = serviceFee - gatewayFee
+```
+- **Service Fee Source**: External transactions with `transactionType === 'SERVICE_FEE'` (tracked only for closing balance)
+- **Gateway Fee Source**: External transactions with `transactionType === 'FEE'`
+
+### Step 6: Net Position Calculation
 
 #### Total Debits
 ```typescript
-totalDebits = settlementRequests + discounts + tax + shippingAmount + 
-              totalAmount + fee + original;
+totalDebits = settlementRequests + gatewayFee;
 ```
 
 #### Total Credits
 ```typescript
-totalCredits = serviceFee + gatewayFee;
+totalCredits = customerPayments;
 ```
 
 #### Net Position
@@ -146,21 +139,16 @@ netPosition = totalDebits - totalCredits;
 {
   "currency": "USD",
   "debits": {
-    "settlementRequests": 5000.00,    // Money requested by sellers
-    "discounts": 150.00,              // Customer discounts given
-    "tax": 300.00,                    // Tax collected
-    "shippingAmount": 200.00,         // Shipping fees
-    "totalAmount": 15000.00,          // Total order amounts
-    "fee": 0.00,                      // Additional fees
-    "original": 15000.00              // Original payment amounts
+    "settlementRequests": 5000.00,
+    "gatewayFee": 435.00
   },
   "credits": {
-    "serviceFee": 750.00,             // Platform revenue
-    "gatewayFee": 435.00              // Payment processor fees
+    "customerPayments": 15000.00
   },
-  "totalDebits": 30650.00,
-  "totalCredits": 1185.00,
-  "netPosition": 29465.00
+  "closingBalance": 315.00, // serviceFee - gatewayFee (not included in totals)
+  "totalDebits": 5435.00,
+  "totalCredits": 15000.00,
+  "netPosition": -955? // Example; sign indicates DR - CR
 }
 ```
 
@@ -171,7 +159,8 @@ netPosition = totalDebits - totalCredits;
     "totalCurrencies": 2,
     "totalDebits": 50000.00,
     "totalCredits": 2000.00,
-    "netPosition": 48000.00
+    "netPosition": 48000.00,
+    "closingBalance": 1500.00
   }
 }
 ```
@@ -179,26 +168,32 @@ netPosition = totalDebits - totalCredits;
 ## Business Logic Examples
 
 ### Example 1: Simple Order Flow
-1. **Customer places $100 order**
-   - Debit: `totalAmount` = $100
-   - Debit: `original` = $100
+1. **Customer pays $100 (SUCCESS)**
+   - Credit: `customerPayments` = $100 (ORIGINAL)
+2. **Processor charges fee**
+   - Debit: `gatewayFee` = $2.90 (FEE)
+3. **Platform records service fee (for closing balance only)**
+   - Closing Balance component: `serviceFee` = $5.00 (SERVICE_FEE)
+4. **Seller requests settlement**
+   - Debit: `settlementRequests` = $92.10
 
-2. **Payment processing**
-   - Credit: `gatewayFee` = $2.90 (Stripe fee)
-   - Credit: `serviceFee` = $5.00 (5% platform fee)
-
-3. **Seller requests settlement**
-   - Debit: `settlementRequests` = $92.10 (100 - 2.90 - 5.00)
-
-**Net Position**: $100 - $2.90 - $5.00 = $92.10 (positive)
+Totals in report:
+- Debits: $2.90 (gatewayFee) + $92.10 (settlementRequests) = $95.00
+- Credits: $100.00 (customerPayments)
+- Net Position (DR - CR) = $95.00 - $100.00 = -$5.00
+- Closing Balance (Service - Gateway) = $5.00 - $2.90 = $2.10
 
 ### Example 2: Multiple Orders
 - 10 orders of $100 each = $1,000 total
-- Gateway fees: $29.00
-- Service fees: $50.00
-- Settlement requests: $921.00
+- Gateway fees (debit): $29.00
+- Service fees (closing balance only): $50.00
+- Settlement requests (debit): $921.00
 
-**Net Position**: $1,000 - $29.00 - $50.00 = $921.00
+Report totals:
+- Debits: $29.00 + $921.00 = $950.00
+- Credits: $1,000.00
+- Net Position: $950.00 - $1,000.00 = -$50.00
+- Closing Balance: $50.00 - $29.00 = $21.00
 
 ## Filtering Options
 
