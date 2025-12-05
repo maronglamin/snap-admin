@@ -31,7 +31,9 @@ const entityTypes = [
     'SNAP_RIDE_ANALYTICS',
     'SNAP_RIDE_RIDE_SERVICE',
     'ANALYTICS',
-    'ANALYTICS_REVENUE'
+    'ANALYTICS_REVENUE',
+    'AUTHENTICATION',
+    'AUTHENTICATION_DEVICE_AUTHENTICATION'
 ];
 const permissions = ['VIEW', 'ADD', 'EDIT', 'DELETE', 'EXPORT'];
 async function seedRoles() {
@@ -73,7 +75,7 @@ async function seedRoles() {
         });
         const managerPermissions = [];
         const managerEntityTypes = [
-            'DASHBOARD', 'USERS', 'PRODUCTS', 'ORDERS', 'SETTLEMENTS', 'JOURNALS', 'SNAP_RIDE',
+            'DASHBOARD', 'USERS', 'PRODUCTS', 'ORDERS', 'SETTLEMENTS', 'JOURNALS', 'SNAP_RIDE', 'AUTHENTICATION',
             'USERS_SNAP_USERS', 'USERS_KYC_APPROVAL',
             'PRODUCTS_CATEGORIES',
             'SETTLEMENTS_REQUESTS', 'SETTLEMENTS_SHEET', 'SETTLEMENTS_CUMULATIVE_ENTRIES',
@@ -81,6 +83,7 @@ async function seedRoles() {
             'SNAP_RIDE_RIDER_APPLICATIONS', 'SNAP_RIDE_DRIVER_MANAGEMENT', 'SNAP_RIDE_RIDE_MANAGEMENT', 'SNAP_RIDE_ANALYTICS',
             'ANALYTICS',
             'ANALYTICS_REVENUE',
+            'AUTHENTICATION_DEVICE_AUTHENTICATION',
         ];
         for (const entityType of managerEntityTypes) {
             for (const permission of permissions) {
@@ -141,12 +144,13 @@ async function seedRoles() {
                 });
             }
         }
-        const viewOnlyMainEntities = ['DASHBOARD', 'PRODUCTS', 'ORDERS', 'SETTLEMENTS', 'JOURNALS', 'SNAP_RIDE'];
+        const viewOnlyMainEntities = ['DASHBOARD', 'PRODUCTS', 'ORDERS', 'SETTLEMENTS', 'JOURNALS', 'SNAP_RIDE', 'AUTHENTICATION'];
         const viewOnlySubEntities = [
             'PRODUCTS_CATEGORIES',
             'SETTLEMENTS_REQUESTS', 'SETTLEMENTS_SHEET', 'SETTLEMENTS_CUMULATIVE_ENTRIES',
             'JOURNALS_STRIPE_PAYMENT_REPORT', 'JOURNALS_SNAP_FEE_REPORT', 'JOURNALS_AUDIT_REPORT',
             'SNAP_RIDE_RIDER_APPLICATIONS', 'SNAP_RIDE_DRIVER_MANAGEMENT', 'SNAP_RIDE_RIDE_MANAGEMENT', 'SNAP_RIDE_ANALYTICS',
+            'AUTHENTICATION_DEVICE_AUTHENTICATION',
         ];
         for (const entityType of [...viewOnlyMainEntities, ...viewOnlySubEntities]) {
             supportPermissions.push({

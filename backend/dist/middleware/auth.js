@@ -52,6 +52,18 @@ const authenticate = async (req, res, next) => {
             roleName: admin.operatorEntity.role.name,
         };
         req.user = adminData;
+        try {
+            const newToken = jsonwebtoken_1.default.sign({
+                id: admin.id,
+                email: admin.email,
+                username: admin.username,
+                role: admin.operatorEntity.role.name,
+                entityId: admin.operatorEntityId
+            }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '30m' });
+            res.setHeader('x-token', newToken);
+        }
+        catch {
+        }
         next();
     }
     catch (error) {

@@ -138,7 +138,7 @@ router.post('/verify-mfa', [
             username: admin.username,
             role: admin.operatorEntity.role.name,
             entityId: admin.operatorEntityId
-        }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '24h' });
+        }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '30m' });
         const permissions = {};
         admin.operatorEntity.role.permissions.forEach(perm => {
             if (!permissions[perm.entityType]) {
@@ -234,7 +234,7 @@ router.post('/enable-mfa', [
             username: admin.username,
             role: admin.operatorEntity.role.name,
             entityId: admin.operatorEntityId
-        }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '24h' });
+        }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '30m' });
         const permissions = {};
         admin.operatorEntity.role.permissions.forEach(perm => {
             if (!permissions[perm.entityType]) {
@@ -314,7 +314,7 @@ router.post('/verify-backup-code', [
             username: admin.username,
             role: admin.operatorEntity.role.name,
             entityId: admin.operatorEntityId
-        }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '24h' });
+        }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '30m' });
         const permissions = {};
         admin.operatorEntity.role.permissions.forEach(perm => {
             if (!permissions[perm.entityType]) {

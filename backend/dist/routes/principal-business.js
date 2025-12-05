@@ -8,6 +8,11 @@ const router = (0, express_1.Router)();
 const prisma = new client_1.PrismaClient();
 router.get('/', auth_1.authenticate, (0, permissions_1.requirePermission)('ECOMMERCE_PRINCIPAL_BUSINESS', 'VIEW'), async (req, res) => {
     try {
+        const { startDate, endDate } = req.query;
+        const parsedStart = startDate && startDate !== 'undefined' ? new Date(startDate) : undefined;
+        const parsedEnd = endDate && endDate !== 'undefined' ? new Date(endDate) : undefined;
+        const hasValidRange = parsedStart instanceof Date && !isNaN(parsedStart.getTime()) && parsedEnd instanceof Date && !isNaN(parsedEnd.getTime());
+        const dateRange = hasValidRange ? { gte: parsedStart, lte: parsedEnd } : undefined;
         const grouped = await prisma.salesRep.groupBy({
             by: ['parentSellerId'],
             _count: { parentSellerId: true },
@@ -30,13 +35,28 @@ router.get('/', auth_1.authenticate, (0, permissions_1.requirePermission)('ECOMM
                 select: { userId: true }
             });
             const childUserIds = children.map(c => c.userId);
-            const [ordersAgg, productsCount] = await Promise.all([
-                prisma.orders.aggregate({
-                    where: { sellerId: { in: childUserIds } },
-                    _count: { _all: true },
+            const [ordersCountAll, salesByCurrency, productsCount] = await Promise.all([
+                prisma.orders.count({
+                    where: {
+                        sellerId: { in: childUserIds },
+                        ...(dateRange && { createdAt: dateRange })
+                    }
+                }),
+                prisma.orders.groupBy({
+                    by: ['currencyCode'],
+                    where: {
+                        sellerId: { in: childUserIds },
+                        paymentStatus: 'PAID',
+                        ...(dateRange && { createdAt: dateRange })
+                    },
                     _sum: { totalAmount: true }
                 }),
-                prisma.product.count({ where: { sellerId: { in: childUserIds } } })
+                prisma.product.count({
+                    where: {
+                        sellerId: { in: childUserIds },
+                        ...(dateRange && { createdAt: dateRange })
+                    }
+                })
             ]);
             return {
                 principal: {
@@ -47,8 +67,11 @@ router.get('/', auth_1.authenticate, (0, permissions_1.requirePermission)('ECOMM
                 },
                 repsCount: grouped.find((g) => g.parentSellerId === principal.id)?._count?.parentSellerId || 0,
                 commerce: {
-                    ordersCount: ordersAgg?._count?._all || 0,
-                    totalSales: ordersAgg?._sum?.totalAmount || 0,
+                    ordersCount: ordersCountAll || 0,
+                    salesByCurrency: (salesByCurrency || []).map((r) => ({
+                        currencyCode: r.currencyCode,
+                        totalSales: r._sum?.totalAmount || 0
+                    })),
                     productsCount,
                 }
             };
@@ -104,14 +127,12 @@ router.get('/:userId/analytics', auth_1.authenticate, (0, permissions_1.requireP
         const parsedEnd = endDate && endDate !== 'undefined' ? new Date(endDate) : undefined;
         const hasValidRange = parsedStart instanceof Date && !isNaN(parsedStart.getTime()) && parsedEnd instanceof Date && !isNaN(parsedEnd.getTime());
         const dateRange = hasValidRange ? { gte: parsedStart, lte: parsedEnd } : undefined;
-        const [ordersAgg, ordersByStatus, productsCount] = await Promise.all([
-            prisma.orders.aggregate({
+        const [ordersCountAll, ordersByStatus, productsCount, salesByCurrency] = await Promise.all([
+            prisma.orders.count({
                 where: {
                     sellerId: userId,
                     ...(dateRange && { createdAt: dateRange })
-                },
-                _count: { _all: true },
-                _sum: { totalAmount: true }
+                }
             }),
             prisma.orders.groupBy({
                 by: ['status'],
@@ -126,14 +147,26 @@ router.get('/:userId/analytics', auth_1.authenticate, (0, permissions_1.requireP
                     sellerId: userId,
                     ...(dateRange && { createdAt: dateRange })
                 }
+            }),
+            prisma.orders.groupBy({
+                by: ['currencyCode'],
+                where: {
+                    sellerId: userId,
+                    paymentStatus: 'PAID',
+                    ...(dateRange && { createdAt: dateRange })
+                },
+                _sum: { totalAmount: true }
             })
         ]);
         res.json({
             success: true,
             data: {
                 orders: {
-                    count: ordersAgg?._count?._all || 0,
-                    totalSales: ordersAgg?._sum?.totalAmount || 0,
+                    count: ordersCountAll || 0,
+                    salesByCurrency: (salesByCurrency || []).map((r) => ({
+                        currencyCode: r.currencyCode,
+                        totalSales: r._sum?.totalAmount || 0
+                    })),
                     byStatus: ordersByStatus?.map((r) => ({ status: r.status, count: r._count?._all || 0 })) || [],
                 },
                 products: {

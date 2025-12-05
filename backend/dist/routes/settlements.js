@@ -118,17 +118,20 @@ router.get('/cumulative-entries', auth_1.authenticate, async (req, res) => {
                     currency,
                     debits: {
                         settlementRequests: 0,
-                        original: 0,
+                        gatewayFee: 0,
                     },
                     credits: {
-                        serviceFee: 0,
-                        gatewayFee: 0,
+                        customerPayments: 0,
                     },
                     details: {
                         settlements: [],
                         orders: [],
                         externalTransactions: [],
-                    }
+                    },
+                    feeBreakdown: {
+                        serviceFee: 0,
+                        gatewayFee: 0,
+                    },
                 };
             }
             currencyGroups[currency].debits.settlementRequests += Number(settlement.amount);
@@ -141,17 +144,20 @@ router.get('/cumulative-entries', auth_1.authenticate, async (req, res) => {
                     currency,
                     debits: {
                         settlementRequests: 0,
-                        original: 0,
+                        gatewayFee: 0,
                     },
                     credits: {
-                        serviceFee: 0,
-                        gatewayFee: 0,
+                        customerPayments: 0,
                     },
                     details: {
                         settlements: [],
                         orders: [],
                         externalTransactions: [],
-                    }
+                    },
+                    feeBreakdown: {
+                        serviceFee: 0,
+                        gatewayFee: 0,
+                    },
                 };
             }
             currencyGroups[currency].details.orders.push(order);
@@ -163,35 +169,42 @@ router.get('/cumulative-entries', auth_1.authenticate, async (req, res) => {
                     currency,
                     debits: {
                         settlementRequests: 0,
-                        original: 0,
+                        gatewayFee: 0,
                     },
                     credits: {
-                        serviceFee: 0,
-                        gatewayFee: 0,
+                        customerPayments: 0,
                     },
                     details: {
                         settlements: [],
                         orders: [],
                         externalTransactions: [],
-                    }
+                    },
+                    feeBreakdown: {
+                        serviceFee: 0,
+                        gatewayFee: 0,
+                    },
                 };
             }
             const amount = Number(transaction.amount);
             switch (transaction.transactionType) {
                 case 'ORIGINAL':
-                    currencyGroups[currency].debits.original += amount;
+                    currencyGroups[currency].credits.customerPayments += amount;
                     break;
                 case 'FEE':
-                    currencyGroups[currency].credits.gatewayFee += amount;
+                    currencyGroups[currency].feeBreakdown.gatewayFee += amount;
                     break;
                 case 'SERVICE_FEE':
-                    currencyGroups[currency].credits.serviceFee += amount;
+                    currencyGroups[currency].feeBreakdown.serviceFee += amount;
                     break;
             }
             currencyGroups[currency].details.externalTransactions.push(transaction);
         });
         Object.keys(currencyGroups).forEach(currency => {
             const group = currencyGroups[currency];
+            const serviceFee = Number(group.feeBreakdown?.serviceFee || 0);
+            const gatewayFee = Number(group.feeBreakdown?.gatewayFee || 0);
+            group.debits.gatewayFee = gatewayFee;
+            group.closingBalance = serviceFee - gatewayFee;
             group.totalDebits = Object.values(group.debits).reduce((sum, value) => sum + value, 0);
             group.totalCredits = Object.values(group.credits).reduce((sum, value) => sum + value, 0);
             group.netPosition = group.totalDebits - group.totalCredits;
@@ -238,6 +251,7 @@ router.get('/cumulative-entries', auth_1.authenticate, async (req, res) => {
                 totalDebits: result.find((group) => group.currency === 'GMD')?.totalDebits || 0,
                 totalCredits: result.find((group) => group.currency === 'GMD')?.totalCredits || 0,
                 netPosition: result.find((group) => group.currency === 'GMD')?.netPosition || 0,
+                closingBalance: result.find((group) => group.currency === 'GMD')?.closingBalance || 0,
             }
         });
     }

@@ -19,23 +19,69 @@ const transformDocumentUrl = (documentUrl) => {
 };
 router.get('/', auth_1.authenticate, async (req, res) => {
     try {
-        const { page = 1, limit = 10, search = '', status = 'all', type = 'all', kycStatus = 'all', hasKYC = false } = req.query;
+        const { page = 1, limit = 10, search = '', status = 'all', type = 'all', kycStatus = 'all', hasKYC = false, startDate, endDate } = req.query;
         const pageNum = parseInt(page);
         const limitNum = parseInt(limit);
         const skip = (pageNum - 1) * limitNum;
         const where = {};
+        const andConditions = [];
+        const orConditions = [];
         if (search) {
-            where.OR = [
-                { firstName: { contains: search, mode: 'insensitive' } },
-                { lastName: { contains: search, mode: 'insensitive' } },
-                { phoneNumber: { contains: search, mode: 'insensitive' } },
-            ];
+            andConditions.push({
+                OR: [
+                    { firstName: { contains: search, mode: 'insensitive' } },
+                    { lastName: { contains: search, mode: 'insensitive' } },
+                    { phoneNumber: { contains: search, mode: 'insensitive' } },
+                ]
+            });
+        }
+        if (startDate || endDate) {
+            const createdAt = {};
+            if (startDate)
+                createdAt.gte = new Date(startDate);
+            if (endDate)
+                createdAt.lte = new Date(endDate);
+            andConditions.push({ createdAt });
         }
         if (hasKYC === 'true') {
-            where.sellerKyc = {
-                isNot: null
-            };
+            andConditions.push({ sellerKyc: { isNot: null } });
         }
+        if (type === 'BUYER') {
+            andConditions.push({ sellerKyc: { is: null } });
+        }
+        else if (type === 'SELLER') {
+            andConditions.push({ sellerKyc: { isNot: null } });
+        }
+        if (kycStatus !== 'all' && type !== 'BUYER') {
+            andConditions.push({ sellerKyc: { is: { status: kycStatus } } });
+        }
+        if (status !== 'all') {
+            if (status === 'ACTIVE') {
+                if (type === 'SELLER') {
+                    andConditions.push({ sellerKyc: { is: { status: 'APPROVED' } } });
+                }
+                else if (type === 'BUYER') {
+                    andConditions.push({ sellerKyc: { is: null } });
+                }
+                else {
+                    orConditions.push({ sellerKyc: { is: null } });
+                    orConditions.push({ sellerKyc: { is: { status: 'APPROVED' } } });
+                }
+            }
+            else if (status === 'PENDING') {
+                andConditions.push({ sellerKyc: { is: { status: 'PENDING' } } });
+            }
+            else if (status === 'SUSPENDED') {
+                andConditions.push({ sellerKyc: { is: { status: { in: ['REJECTED', 'SUSPENDED'] } } } });
+            }
+        }
+        if (andConditions.length > 0) {
+            where.AND = [...(where.AND || []), ...andConditions];
+        }
+        if (orConditions.length > 0) {
+            where.AND = [...(where.AND || []), { OR: orConditions }];
+        }
+        const totalFiltered = await prisma.user.count({ where });
         const allUsers = await prisma.user.findMany({
             where,
             include: {
@@ -90,6 +136,8 @@ router.get('/', auth_1.authenticate, async (req, res) => {
                 },
             },
             orderBy: { createdAt: 'desc' },
+            skip,
+            take: limitNum,
         });
         const allTransformedUsers = allUsers.map(user => {
             const isSeller = !!user.sellerKyc;
@@ -119,20 +167,8 @@ router.get('/', auth_1.authenticate, async (req, res) => {
                 user,
             };
         });
-        let filteredTransformedUsers = allTransformedUsers;
-        if (status !== 'all') {
-            filteredTransformedUsers = filteredTransformedUsers.filter(user => user.status === status);
-        }
-        if (type !== 'all') {
-            filteredTransformedUsers = filteredTransformedUsers.filter(user => user.type === type);
-        }
-        if (kycStatus !== 'all') {
-            filteredTransformedUsers = filteredTransformedUsers.filter(user => user.kycStatus === kycStatus);
-        }
-        const totalFiltered = filteredTransformedUsers.length;
         const totalPages = Math.ceil(totalFiltered / limitNum);
-        const paginatedUsers = filteredTransformedUsers.slice(skip, skip + limitNum);
-        const transformedUsers = paginatedUsers.map(({ user, type: userType, status: userStatus, kycStatus }) => {
+        const transformedUsers = allTransformedUsers.map(({ user, type: userType, status: userStatus, kycStatus }) => {
             const totalProducts = user.products.filter(p => p.status === 'ACTIVE').length;
             let totalSales = 0;
             let totalSpent = 0;

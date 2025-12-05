@@ -158,6 +158,7 @@ router.get('/', authenticate, requirePermission('SNAP_RIDE_RIDE_SERVICE_TIERS', 
         driverId: true,
         status: true,
         isOnline: true,
+        isRentalType: true,
         isVerified: true,
         isActive: true,
         updatedBy: true,
@@ -222,13 +223,16 @@ router.get('/', authenticate, requirePermission('SNAP_RIDE_RIDE_SERVICE_TIERS', 
 router.get('/available-ride-services', authenticate, requirePermission('SNAP_RIDE_RIDE_SERVICE_TIERS', 'VIEW'), async (req: any, res) => {
   try {
     const rideServices = await prisma.rideService.findMany({
-      where: { isActive: true },
+      where: { 
+        isActive: true,
+      },
       select: {
         id: true,
         name: true,
         vehicleType: true,
         description: true,
         isDefault: true,
+        isRentalType: true,
       },
       orderBy: { name: 'asc' }
     });
@@ -318,6 +322,8 @@ router.put('/:driverId/assign', [
       where: { id: driverId },
       data: { 
         rideServiceId,
+        // Keep driver rental flag in sync with selected ride service
+        isRentalType: rideService.isRentalType,
         updatedBy: adminUser.username, // Track which admin made the change
       } as any,
       select: {
@@ -325,6 +331,7 @@ router.put('/:driverId/assign', [
         driverId: true,
         status: true,
         isOnline: true,
+        isRentalType: true,
         isVerified: true,
         isActive: true,
         updatedBy: true,
