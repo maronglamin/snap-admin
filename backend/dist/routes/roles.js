@@ -9,6 +9,8 @@ const client_1 = require("@prisma/client");
 const auth_1 = require("../middleware/auth");
 const router = express_1.default.Router();
 const prisma = new client_1.PrismaClient();
+const ALLOWED_ENTITY_TYPES = new Set(Object.values(client_1.EntityType));
+const ALLOWED_PERMISSIONS = new Set(Object.values(client_1.Permission));
 router.get('/', auth_1.authenticate, async (req, res) => {
     try {
         const roles = await prisma.role.findMany({
@@ -96,7 +98,19 @@ router.post('/', [
         });
         const permissionData = [];
         for (const [entityType, entityPermissions] of Object.entries(permissions)) {
+            if (!ALLOWED_ENTITY_TYPES.has(entityType)) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Invalid entityType: ${entityType}. Ensure your database enum is up-to-date.`,
+                });
+            }
             for (const [permission, isGranted] of Object.entries(entityPermissions)) {
+                if (!ALLOWED_PERMISSIONS.has(permission)) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Invalid permission: ${permission} for entityType ${entityType}.`,
+                    });
+                }
                 permissionData.push({
                     roleId: role.id,
                     entityType: entityType,
@@ -192,7 +206,19 @@ router.put('/:id', [
         });
         const permissionData = [];
         for (const [entityType, entityPermissions] of Object.entries(permissions)) {
+            if (!ALLOWED_ENTITY_TYPES.has(entityType)) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Invalid entityType: ${entityType}. Ensure your database enum is up-to-date.`,
+                });
+            }
             for (const [permission, isGranted] of Object.entries(entityPermissions)) {
+                if (!ALLOWED_PERMISSIONS.has(permission)) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Invalid permission: ${permission} for entityType ${entityType}.`,
+                    });
+                }
                 permissionData.push({
                     roleId: id,
                     entityType: entityType,
@@ -320,6 +346,8 @@ router.get('/available-permissions', auth_1.authenticate, async (req, res) => {
             { value: 'JOURNALS_STRIPE_PAYMENT_REPORT', label: 'Stripe Payment Report', type: 'submenu', parent: 'JOURNALS' },
             { value: 'JOURNALS_SNAP_FEE_REPORT', label: 'Snap Fee Report', type: 'submenu', parent: 'JOURNALS' },
             { value: 'JOURNALS_AUDIT_REPORT', label: 'Transaction Logs', type: 'submenu', parent: 'JOURNALS' },
+            { value: 'AUTHENTICATION', label: 'Authentication', type: 'main' },
+            { value: 'AUTHENTICATION_DEVICE_AUTHENTICATION', label: 'Device Authentication', type: 'submenu', parent: 'AUTHENTICATION' },
             { value: 'SYSTEM_CONFIG_ROLES', label: 'Roles', type: 'submenu', parent: 'SYSTEM_CONFIG' },
             { value: 'SYSTEM_CONFIG_OPERATOR_ENTITY', label: 'User Container', type: 'submenu', parent: 'SYSTEM_CONFIG' },
             { value: 'SYSTEM_CONFIG_SYSTEM_OPERATOR', label: 'Admin Container', type: 'submenu', parent: 'SYSTEM_CONFIG' },

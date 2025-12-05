@@ -58,6 +58,7 @@ interface Driver {
   driverId: string;
   status: string;
   isOnline: boolean;
+  isRentalType: boolean;
   totalRides: number;
   totalEarnings: number;
   rating: number;
@@ -704,6 +705,11 @@ function RideServiceTiersPage() {
                               <Badge className={getStatusColor(driver.status)}>
                                 {driver.status}
                               </Badge>
+                              {driver.isRentalType && (
+                                <Badge className="bg-amber-100 text-amber-800">
+                                  Rental
+                                </Badge>
+                              )}
                               {driver.rideService && (
                                 <Badge className="bg-blue-100 text-blue-800 flex items-center space-x-1">
                                   {getVehicleIcon(driver.rideService.vehicleType)}
