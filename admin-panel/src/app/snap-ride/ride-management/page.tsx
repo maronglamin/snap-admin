@@ -248,7 +248,7 @@ export default function RideManagementPage() {
       const token = getAuthToken();
       
       // Use fetch directly for blob response
-      const response = await fetch(`http://localhost:8080/api/ride-management/export?${exportParams}`, {
+      const response = await fetch(`http://snap-admin.cloudnexus.biz:8080/api/ride-management/export?${exportParams}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

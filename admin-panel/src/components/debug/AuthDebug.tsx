@@ -30,7 +30,7 @@ const testAuthentication = async () => {
     console.log('🧪 Token found:', token.substring(0, 20) + '...');
     
     // Test 2: Test API call with token
-    const response = await fetch('http://localhost:8080/api/roles', {
+    const response = await fetch('http://snap-admin.cloudnexus.biz:8080/api/roles', {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -58,7 +58,7 @@ const forceLogin = async () => {
   console.log('🧪 Force logging in...');
   
   try {
-    const response = await fetch('http://localhost:8080/api/auth/login', {
+    const response = await fetch('http://snap-admin.cloudnexus.biz:8080/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
