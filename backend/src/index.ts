@@ -46,18 +46,27 @@ const PORT = process.env.PORT || 8080;
 app.use(helmet());
 
 // CORS configuration
-const defaultAllowedOrigins = ['http://snap-admin.cloudnexus.biz:3000', 'http://snap-admin.cloudnexus.biz:3001'];
+const defaultAllowedOrigins = ['http://snap-admin.cloudnexus.biz:3000', 'http://snap-admin.cloudnexus.biz:3001', 'https://snap-admin.cloudnexus.biz', 'http://snap-admin.cloudnexus.biz'];
 const envOrigins = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || '')
   .split(',')
   .map(o => o.trim())
   .filter(Boolean);
 const allowedOrigins = Array.from(new Set([...defaultAllowedOrigins, ...envOrigins]));
 
+// Allow regex-based origins (e.g., any port/protocol on the admin domain)
+const allowedOriginPatterns = [
+  /^https?:\/\/snap-admin\.cloudnexus\.biz(?::\d+)?$/i,
+];
+
+const isAllowedOrigin = (origin: string | undefined): boolean => {
+  if (!origin) return true; // Non-browser clients without Origin
+  if (allowedOrigins.includes(origin)) return true;
+  return allowedOriginPatterns.some(rx => rx.test(origin));
+};
+
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Allow non-browser requests (e.g., curl, Postman) with no Origin header
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
+    if (isAllowedOrigin(origin)) return callback(null, true);
     return callback(null, false);
   },
   credentials: true,
@@ -69,11 +78,14 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Global preflight handler without path-to-regexp patterns (Express 5 safe)
+// Let cors middleware handle OPTIONS for all routes
+app.options('*', cors(corsOptions));
+
+// Global preflight fallback (Express 5 safe)
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
     const origin = req.headers.origin as string | undefined;
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       if (origin) {
         res.header('Access-Control-Allow-Origin', origin);
         res.header('Vary', 'Origin');
