@@ -78,9 +78,6 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Let cors middleware handle OPTIONS for all routes
-app.options('*', cors(corsOptions));
-
 // Global preflight fallback (Express 5 safe)
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
