@@ -69,6 +69,7 @@ const allowedOriginPatterns = [
   /^https?:\/\/snap-admin\.cloudnexus\.biz(?::\d+)?$/i,
   /^https?:\/\/46\.101\.217\.41(?::\d+)?$/i, // Production server IP pattern
 ];
+];
 
 const isAllowedOrigin = (origin: string | undefined): boolean => {
   if (!origin) return true; // Non-browser clients without Origin
