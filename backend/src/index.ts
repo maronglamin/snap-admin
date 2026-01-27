@@ -42,11 +42,21 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+// Trust proxy - required when behind reverse proxy (nginx, etc.)
+// This allows express-rate-limit to correctly identify client IPs from X-Forwarded-For headers
+app.set('trust proxy', true);
+
 // Security middleware
 app.use(helmet());
 
 // CORS configuration
-const defaultAllowedOrigins = ['http://snap-admin.cloudnexus.biz:3000', 'http://snap-admin.cloudnexus.biz:3001', 'https://snap-admin.cloudnexus.biz', 'http://snap-admin.cloudnexus.biz'];
+const defaultAllowedOrigins = [
+  'http://snap-admin.cloudnexus.biz:3000', 
+  'http://snap-admin.cloudnexus.biz:3001', 
+  'https://snap-admin.cloudnexus.biz', 
+  'http://snap-admin.cloudnexus.biz:3000',
+  'http://46.101.217.41:3000', // Production server IP
+];
 const envOrigins = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || '')
   .split(',')
   .map(o => o.trim())
@@ -54,8 +64,10 @@ const envOrigins = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || '')
 const allowedOrigins = Array.from(new Set([...defaultAllowedOrigins, ...envOrigins]));
 
 // Allow regex-based origins (e.g., any port/protocol on the admin domain)
+// Also allow IP addresses on common ports (for development/production flexibility)
 const allowedOriginPatterns = [
   /^https?:\/\/snap-admin\.cloudnexus\.biz(?::\d+)?$/i,
+  /^https?:\/\/46\.101\.217\.41(?::\d+)?$/i, // Production server IP pattern
 ];
 
 const isAllowedOrigin = (origin: string | undefined): boolean => {
