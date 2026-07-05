@@ -28,13 +28,14 @@ DATABASE_URL="postgresql://snap_user:snap_password@snap-admin.cloudnexus.biz:543
 # Server Configuration
 PORT=3001
 NODE_ENV=development
+PUBLIC_URL=http://localhost:3001
 
 # JWT Configuration
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 JWT_EXPIRES_IN=24h
 
-# CORS Configuration
-CORS_ORIGIN=http://snap-admin.cloudnexus.biz:3001
+# CORS Configuration (frontend origin(s), comma-separated)
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 
 # Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000

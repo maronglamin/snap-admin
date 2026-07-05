@@ -19,7 +19,9 @@ import {
 } from './mockData';
 import { useAuthStore } from '@/stores/authStore';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://snap-admin.cloudnexus.biz:8080/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
+export { API_BASE_URL };
 
 // Helper function to get auth token
 const getAuthToken = () => {
@@ -1577,4 +1579,39 @@ export const principalBusinessApi = {
     const query = new URLSearchParams(filtered).toString();
     return apiRequest(`/principal-business/${userId}/analytics${query ? `?${query}` : ''}`);
   },
+};
+
+// Home Services API
+export const homeServicesApi = {
+  getProviderApplications: (query?: string) => apiRequest(`/home-services/provider-applications${query ? `?${query}` : ''}`),
+  getProviderApplicationStats: () => apiRequest('/home-services/provider-applications/stats'),
+  getProviderApplication: (id: string) => apiRequest(`/home-services/provider-applications/${id}`),
+  approveProviderApplication: (id: string) => apiRequest(`/home-services/provider-applications/${id}/approve`, { method: 'PATCH' }),
+  rejectProviderApplication: (id: string, rejectionReason: string) =>
+    apiRequest(`/home-services/provider-applications/${id}/reject`, { method: 'PATCH', body: JSON.stringify({ rejectionReason }) }),
+  getProviders: (query?: string) => apiRequest(`/home-services/providers${query ? `?${query}` : ''}`),
+  toggleProviderActive: (id: string) => apiRequest(`/home-services/providers/${id}/toggle-active`, { method: 'PATCH' }),
+  getBookings: (query?: string) => apiRequest(`/home-services/bookings${query ? `?${query}` : ''}`),
+  getBooking: (id: string) => apiRequest(`/home-services/bookings/${id}`),
+  getCategories: () => apiRequest('/home-services/categories'),
+  createCategory: (data: any) => apiRequest('/home-services/categories', { method: 'POST', body: JSON.stringify(data) }),
+  updateCategory: (id: string, data: any) => apiRequest(`/home-services/categories/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+};
+
+// Real Estate API
+export const realEstateApi = {
+  getAgentApplications: (query?: string) => apiRequest(`/real-estate/agent-applications${query ? `?${query}` : ''}`),
+  getAgentApplicationStats: () => apiRequest('/real-estate/agent-applications/stats'),
+  getAgentApplication: (id: string) => apiRequest(`/real-estate/agent-applications/${id}`),
+  approveAgentApplication: (id: string) => apiRequest(`/real-estate/agent-applications/${id}/approve`, { method: 'PATCH' }),
+  rejectAgentApplication: (id: string, rejectionReason: string) =>
+    apiRequest(`/real-estate/agent-applications/${id}/reject`, { method: 'PATCH', body: JSON.stringify({ rejectionReason }) }),
+  getAgents: (query?: string) => apiRequest(`/real-estate/agents${query ? `?${query}` : ''}`),
+  toggleAgentActive: (id: string) => apiRequest(`/real-estate/agents/${id}/toggle-active`, { method: 'PATCH' }),
+  getListings: (query?: string) => apiRequest(`/real-estate/listings${query ? `?${query}` : ''}`),
+  getListing: (id: string) => apiRequest(`/real-estate/listings/${id}`),
+  updateListingStatus: (id: string, body: { status?: string; publish?: boolean }) =>
+    apiRequest(`/real-estate/listings/${id}/status`, { method: 'PATCH', body: JSON.stringify(body) }),
+  getBookings: (query?: string) => apiRequest(`/real-estate/bookings${query ? `?${query}` : ''}`),
+  getBooking: (id: string) => apiRequest(`/real-estate/bookings/${id}`),
 };

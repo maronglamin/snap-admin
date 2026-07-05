@@ -449,6 +449,20 @@ router.get('/available-permissions', authenticate, async (req: any, res) => {
       
       // SNAP Rental submenus
       { value: 'SNAP_RENTAL_REQUEST', label: 'Request', type: 'submenu', parent: 'SNAP_RENTAL' },
+
+      // SNAP Home Services
+      { value: 'SNAP_HOME_SERVICES', label: 'SNAP Home Services', type: 'main' },
+      { value: 'SNAP_HOME_SERVICES_PROVIDER_APPLICATIONS', label: 'Provider Applications', type: 'submenu', parent: 'SNAP_HOME_SERVICES' },
+      { value: 'SNAP_HOME_SERVICES_PROVIDERS', label: 'Providers', type: 'submenu', parent: 'SNAP_HOME_SERVICES' },
+      { value: 'SNAP_HOME_SERVICES_BOOKINGS', label: 'Service Bookings', type: 'submenu', parent: 'SNAP_HOME_SERVICES' },
+      { value: 'SNAP_HOME_SERVICES_CATEGORIES', label: 'Service Categories', type: 'submenu', parent: 'SNAP_HOME_SERVICES' },
+
+      // SNAP Real Estate
+      { value: 'SNAP_REAL_ESTATE', label: 'SNAP Real Estate', type: 'main' },
+      { value: 'SNAP_REAL_ESTATE_AGENT_APPLICATIONS', label: 'Agent Applications', type: 'submenu', parent: 'SNAP_REAL_ESTATE' },
+      { value: 'SNAP_REAL_ESTATE_AGENTS', label: 'Property Agents', type: 'submenu', parent: 'SNAP_REAL_ESTATE' },
+      { value: 'SNAP_REAL_ESTATE_LISTINGS', label: 'Property Listings', type: 'submenu', parent: 'SNAP_REAL_ESTATE' },
+      { value: 'SNAP_REAL_ESTATE_BOOKINGS', label: 'Property Bookings', type: 'submenu', parent: 'SNAP_REAL_ESTATE' },
       
       // E-commerce submenus
       { value: 'ECOMMERCE_SALES_OUTLETS', label: 'Sales Outlets', type: 'submenu', parent: 'ECOMMERCE' },

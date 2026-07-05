@@ -46,7 +46,7 @@ A modern, responsive admin panel for the SNAP marketplace built with Next.js, Ty
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd admin-panel
+   cd snap-admin/admin-panel
    ```
 
 2. **Install dependencies**

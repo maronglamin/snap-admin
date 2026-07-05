@@ -329,6 +329,7 @@ router.get('/', authenticate, async (req: any, res) => {
       search = '', 
       status = 'all',
       type = 'all',
+      channel = 'all',
       currency = 'all',
       dateFrom = '',
       dateTo = '',
@@ -360,6 +361,10 @@ router.get('/', authenticate, async (req: any, res) => {
 
     if (type && type !== 'all') {
       where.type = type;
+    }
+
+    if (channel && channel !== 'all') {
+      where.channel = channel;
     }
 
     if (currency && currency !== 'all') {

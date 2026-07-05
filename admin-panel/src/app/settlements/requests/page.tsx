@@ -57,6 +57,7 @@ export default function SettlementRequestsPage() {
   const [orderDetails, setOrderDetails] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterChannel, setFilterChannel] = useState('all');
   const [dateFrom, setDateFrom] = useState(() => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -162,6 +163,7 @@ export default function SettlementRequestsPage() {
         limit: '10',
         search: searchQuery,
         status: filterStatus !== 'all' ? filterStatus : '',
+        channel: filterChannel !== 'all' ? filterChannel : '',
         dateFrom: dateFrom,
         dateTo: dateTo,
       });
@@ -297,6 +299,9 @@ export default function SettlementRequestsPage() {
       'SERVICE_FEE': 'Service Fee',
       'ORIGINAL': 'Original',
       'RIDES': 'Rides',
+      'RENTALS': 'Rentals',
+      'HOME_SERVICES': 'Home Services',
+      'REAL_ESTATE': 'Real Estate',
     };
     return typeMap[type] || type;
   };
@@ -314,6 +319,7 @@ export default function SettlementRequestsPage() {
     setDateFrom(startOfMonth.toISOString().slice(0, 16));
     setDateTo(endOfDay.toISOString().slice(0, 16));
     setFilterStatus('all');
+    setFilterChannel('all');
     setSearchQuery('');
     setCurrentPage(1);
     loadSettlements();
@@ -761,6 +767,22 @@ export default function SettlementRequestsPage() {
                   <SelectItem value={SettlementStatus.PROCESSING}>Processing</SelectItem>
                   <SelectItem value={SettlementStatus.COMPLETED}>Completed</SelectItem>
                   <SelectItem value={SettlementStatus.FAILED}>Failed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-gray-700 mb-1">Channel</Label>
+              <Select value={filterChannel} onValueChange={setFilterChannel}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Channels" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Channels</SelectItem>
+                  <SelectItem value="ECOMMERCE">E-commerce</SelectItem>
+                  <SelectItem value="RIDES">Rides</SelectItem>
+                  <SelectItem value="RENTALS">Rentals</SelectItem>
+                  <SelectItem value="HOME_SERVICES">Home Services</SelectItem>
+                  <SelectItem value="REAL_ESTATE">Real Estate</SelectItem>
                 </SelectContent>
               </Select>
             </div>

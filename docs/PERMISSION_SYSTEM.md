@@ -93,6 +93,18 @@ The system defines these main entity types:
 - **SETTLEMENTS**: Settlement management
 - **SYSTEM_CONFIG**: System configuration
 - **JOURNALS**: Journal/report access
+- **SNAP_HOME_SERVICES**: Home services module (parent)
+  - **SNAP_HOME_SERVICES_PROVIDER_APPLICATIONS**: Provider application queue
+  - **SNAP_HOME_SERVICES_PROVIDERS**: Approved providers directory
+  - **SNAP_HOME_SERVICES_BOOKINGS**: Service booking journal
+  - **SNAP_HOME_SERVICES_CATEGORIES**: Service category CRUD
+- **SNAP_REAL_ESTATE**: Real estate module (parent)
+  - **SNAP_REAL_ESTATE_AGENT_APPLICATIONS**: Agent application queue
+  - **SNAP_REAL_ESTATE_AGENTS**: Property agents directory
+  - **SNAP_REAL_ESTATE_LISTINGS**: Listing moderation
+  - **SNAP_REAL_ESTATE_BOOKINGS**: Property booking journal
+
+Provider and agent **approvals** are performed only in snap-admin (consumer API approve endpoints return 403).
 
 ### 2. Frontend Permission System
 

@@ -27,9 +27,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
   const HEARTBEAT_INTERVAL_MS = 2 * 60 * 1000; // every 2 minutes
 
-  // Hydration
+  // Wait for zustand persist to rehydrate before rendering auth-dependent UI
   useEffect(() => {
-    setIsHydrated(true);
+    const finishHydration = () => setIsHydrated(true);
+
+    if (useAuthStore.persist.hasHydrated()) {
+      finishHydration();
+      return;
+    }
+
+    return useAuthStore.persist.onFinishHydration(finishHydration);
   }, []);
 
   // Global fetch interceptor for token rotation and 401 handling

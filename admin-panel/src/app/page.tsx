@@ -6,26 +6,18 @@ import { useAuthStore } from '@/stores/authStore';
 import { Login } from '@/components/auth/Login';
 
 export default function HomePage() {
-  const { isAuthenticated, checkAuth } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
-    console.log('🔍 Debug - HomePage: isAuthenticated =', isAuthenticated);
-    console.log('🔍 Debug - HomePage: checkAuth() =', checkAuth());
-    
-    if (isAuthenticated && checkAuth()) {
-      console.log('🔍 Debug - HomePage: Redirecting to dashboard');
+    if (isAuthenticated) {
       router.push('/dashboard');
-    } else {
-      console.log('🔍 Debug - HomePage: Showing login page');
     }
-  }, [isAuthenticated, checkAuth, router]);
+  }, [isAuthenticated, router]);
 
-  // Show login screen if not authenticated
-  if (!isAuthenticated || !checkAuth()) {
-    return <Login />;
+  if (isAuthenticated) {
+    return null;
   }
 
-  // This should not be reached, but just in case
-  return null;
+  return <Login />;
 }

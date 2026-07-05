@@ -29,7 +29,10 @@ import {
   UserPlus,
   BarChart3,
   MapPin,
-  Store
+  Store,
+  Wrench,
+  Building2,
+  Home
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -184,6 +187,68 @@ const navigation = [
         permission: { entityType: 'SNAP_RENTAL_REQUEST', permission: 'VIEW' }
       },
     ]
+  },
+  {
+    name: 'SNAP Home Services',
+    icon: Wrench,
+    permission: { entityType: 'SNAP_HOME_SERVICES', permission: 'VIEW' },
+    submenu: [
+      {
+        name: 'Provider Applications',
+        href: '/snap-home-services/provider-applications',
+        icon: UserPlus,
+        permission: { entityType: 'SNAP_HOME_SERVICES_PROVIDER_APPLICATIONS', permission: 'VIEW' },
+      },
+      {
+        name: 'Providers',
+        href: '/snap-home-services/providers',
+        icon: Shield,
+        permission: { entityType: 'SNAP_HOME_SERVICES_PROVIDERS', permission: 'VIEW' },
+      },
+      {
+        name: 'Service Bookings',
+        href: '/snap-home-services/bookings',
+        icon: FileText,
+        permission: { entityType: 'SNAP_HOME_SERVICES_BOOKINGS', permission: 'VIEW' },
+      },
+      {
+        name: 'Service Categories',
+        href: '/snap-home-services/categories',
+        icon: FolderOpen,
+        permission: { entityType: 'SNAP_HOME_SERVICES_CATEGORIES', permission: 'VIEW' },
+      },
+    ],
+  },
+  {
+    name: 'SNAP Real Estate',
+    icon: Building2,
+    permission: { entityType: 'SNAP_REAL_ESTATE', permission: 'VIEW' },
+    submenu: [
+      {
+        name: 'Agent Applications',
+        href: '/snap-real-estate/agent-applications',
+        icon: UserPlus,
+        permission: { entityType: 'SNAP_REAL_ESTATE_AGENT_APPLICATIONS', permission: 'VIEW' },
+      },
+      {
+        name: 'Property Agents',
+        href: '/snap-real-estate/agents',
+        icon: Shield,
+        permission: { entityType: 'SNAP_REAL_ESTATE_AGENTS', permission: 'VIEW' },
+      },
+      {
+        name: 'Property Listings',
+        href: '/snap-real-estate/listings',
+        icon: Home,
+        permission: { entityType: 'SNAP_REAL_ESTATE_LISTINGS', permission: 'VIEW' },
+      },
+      {
+        name: 'Property Bookings',
+        href: '/snap-real-estate/bookings',
+        icon: FileText,
+        permission: { entityType: 'SNAP_REAL_ESTATE_BOOKINGS', permission: 'VIEW' },
+      },
+    ],
   },
   { 
     name: 'System Configuration', 

@@ -764,6 +764,15 @@ router.get('/', authenticate, async (req: any, res) => {
         ecommerceSellersGrowth: calculateGrowth(ecommerceSellersCurrent30Days, ecommerceSellersPrevious60Days),
         rideDriversGrowth: calculateGrowth(rideDriversCurrent30Days, rideDriversPrevious60Days),
         totalRevenueGrowth: calculateGrowth(currentRevenue, previousRevenue),
+        pendingProviderApplications: await prisma.serviceProviderApplication.count({ where: { status: 'PENDING' } }),
+        pendingAgentApplications: await prisma.propertyAgentApplication.count({ where: { status: 'PENDING' } }),
+        activePropertyListings: await prisma.propertyListing.count({ where: { status: 'ACTIVE' } }),
+        serviceBookingsThisWeek: await prisma.serviceBooking.count({
+          where: { createdAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } },
+        }),
+        propertyBookingsThisWeek: await prisma.propertyBooking.count({
+          where: { createdAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } },
+        }),
         revenueData: revenueTrendData,
         userGrowthData: userGrowthData,
         userGrowthTrendData: userGrowthTrendData,

@@ -168,7 +168,7 @@ export function Login() {
             </a>
           </div>
         </div>
-        <div className="mt-4 text-center text-gray-600 text-sm">
+        <div className="mt-4 text-center text-gray-600 text-sm" suppressHydrationWarning>
           © {new Date().getFullYear()} SNAP. Powered by Cloud Nexus. All rights reserved.
         </div>
       </div>

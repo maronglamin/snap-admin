@@ -293,6 +293,11 @@ export interface DashboardData {
   ecommerceSellersGrowth: string;
   rideDriversGrowth: string;
   totalRevenueGrowth: string;
+  pendingProviderApplications?: number;
+  pendingAgentApplications?: number;
+  activePropertyListings?: number;
+  serviceBookingsThisWeek?: number;
+  propertyBookingsThisWeek?: number;
   pendingSettlements: number;
   pendingKyc: number;
   userGrowth: ChartData[];

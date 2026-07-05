@@ -31,6 +31,8 @@ import branchesRoutes from './routes/branches';
 import salesRepsRoutes from './routes/sales-reps';
 import principalBusinessRoutes from './routes/principal-business';
 import authenticationRoutes from './routes/authentication';
+import homeServicesRoutes from './routes/home-services';
+import realEstateRoutes from './routes/real-estate';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -51,10 +53,11 @@ app.use(helmet());
 
 // CORS configuration
 const defaultAllowedOrigins = [
-  'http://snap-admin.cloudnexus.biz:3000', 
-  'http://snap-admin.cloudnexus.biz:3001', 
-  'https://snap-admin.cloudnexus.biz', 
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
   'http://snap-admin.cloudnexus.biz:3000',
+  'http://snap-admin.cloudnexus.biz:3001',
+  'https://snap-admin.cloudnexus.biz',
   'http://46.101.217.41:3000', // Production server IP
 ];
 const envOrigins = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || '')
@@ -66,9 +69,10 @@ const allowedOrigins = Array.from(new Set([...defaultAllowedOrigins, ...envOrigi
 // Allow regex-based origins (e.g., any port/protocol on the admin domain)
 // Also allow IP addresses on common ports (for development/production flexibility)
 const allowedOriginPatterns = [
+  /^https?:\/\/localhost(?::\d+)?$/i,
+  /^https?:\/\/127\.0\.0\.1(?::\d+)?$/i,
   /^https?:\/\/snap-admin\.cloudnexus\.biz(?::\d+)?$/i,
   /^https?:\/\/46\.101\.217\.41(?::\d+)?$/i, // Production server IP pattern
-];
 ];
 
 const isAllowedOrigin = (origin: string | undefined): boolean => {
@@ -174,6 +178,8 @@ app.use('/api/branches', branchesRoutes);
 app.use('/api/sales-reps', salesRepsRoutes);
 app.use('/api/principal-business', principalBusinessRoutes);
 app.use('/api/authentication', authenticationRoutes);
+app.use('/api/home-services', homeServicesRoutes);
+app.use('/api/real-estate', realEstateRoutes);
 
 // 404 handler
 app.use(notFound);
@@ -183,9 +189,11 @@ app.use(errorHandler);
 
 // Start server
 app.listen(PORT, () => {
+  const publicUrl = process.env.PUBLIC_URL || `http://localhost:${PORT}`;
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🔗 Health check: http://snap-admin.cloudnexus.biz:${PORT}/health`);
+  console.log(`🔗 Health check: ${publicUrl}/health`);
+  console.log(`🔗 API: ${publicUrl}/api`);
 });
 
 export default app; 

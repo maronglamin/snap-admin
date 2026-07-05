@@ -19,7 +19,9 @@ import {
   ArrowUpRight, 
   ArrowDownRight,
   CheckCircle,
-  XCircle
+  XCircle,
+  Wrench,
+  Building2
 } from 'lucide-react';
 
 function DashboardContent() {
@@ -81,6 +83,36 @@ function DashboardContent() {
     },
   ];
 
+  const serviceStats = [
+    {
+      title: 'Pending Provider Apps',
+      value: data?.pendingProviderApplications != null ? String(data.pendingProviderApplications) : '0',
+      icon: <Wrench size={24} />,
+      bgColor: 'bg-teal-500',
+    },
+    {
+      title: 'Pending Agent Apps',
+      value: data?.pendingAgentApplications != null ? String(data.pendingAgentApplications) : '0',
+      icon: <Building2 size={24} />,
+      bgColor: 'bg-indigo-500',
+    },
+    {
+      title: 'Active Listings',
+      value: data?.activePropertyListings != null ? String(data.activePropertyListings) : '0',
+      icon: <Store size={24} />,
+      bgColor: 'bg-cyan-500',
+    },
+    {
+      title: 'Bookings This Week',
+      value: data?.serviceBookingsThisWeek != null && data?.propertyBookingsThisWeek != null
+        ? String((data.serviceBookingsThisWeek || 0) + (data.propertyBookingsThisWeek || 0))
+        : '0',
+      icon: <CheckCircle size={24} />,
+      bgColor: 'bg-rose-500',
+      subtitle: data ? `Services: ${data.serviceBookingsThisWeek || 0} · Stays: ${data.propertyBookingsThisWeek || 0}` : '',
+    },
+  ];
+
   // Helper function to format time ago
   const formatTimeAgo = (timestamp: string) => {
     const now = new Date();
@@ -131,6 +163,19 @@ function DashboardContent() {
             icon={stat.icon}
             change={stat.change}
             changeType={stat.changeType}
+            bgColor={stat.bgColor}
+            subtitle={stat.subtitle}
+          />
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {serviceStats.map((stat, index) => (
+          <StatCard
+            key={`svc-${index}`}
+            title={stat.title}
+            value={stat.value}
+            icon={stat.icon}
             bgColor={stat.bgColor}
             subtitle={stat.subtitle}
           />
